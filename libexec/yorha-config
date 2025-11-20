@@ -1,0 +1,60 @@
+#!/usr/bin/env sh
+# vim: syntax=sh et ts=2 sw=2 sts=2
+#
+# ----------------------------------------------------------------------
+# YoRHa specific configuration
+# ----------------------------------------------------------------------
+#
+export YORHA_BASE_PATH="${YORHA_BASE_PATH:-}" # Path to YoRHa project root directory.
+#export YORHA_LIBEXEC_PATH # Defined in the `yorha` script.  Path to our libexec directory.
+#
+# ----------------------------------------------------------------------
+# Container/registry settings
+# ----------------------------------------------------------------------
+#
+export OCI_REGISTRY="${OCI_REGISTRY:-localhost}"
+export OCI_RUNTIME="${OCI_RUNTIME:-podman}"
+export GH_ACCOUNT="${GH_ACCOUNT:-lcook}"
+export GH_PROJECT="${GH_PROJECT:-yorha}"
+#
+# ----------------------------------------------------------------------
+# Base image build arguments
+# ----------------------------------------------------------------------
+#
+# Variables below supply the default values for the base container
+# image build process.  They can be overwritten by either specifying
+# them as environment variables -or- manually editing the below values
+# as desired.
+#
+#   DEFAULT_BASE_TIMEZONE=Europe/Berlin \
+#   DEFAULT_BASE_KEYMAP=de \
+#   DEFAULT_BASE_LANGUAGE=de_DE \
+#   yorha compose container-base
+#
+export DEFAULT_BASE="${DEFAULT_BASE:-archlinux}" # Linux distribution base image
+export DEFAULT_FLAVOR="${DEFAULT_FLAVOR:-}" # Flavor of the base image (if any)
+export DEFAULT_BASE_TIMEZONE="${DEFAULT_BASE_TIMEZONE:-Europe/London}" # Timezone
+export DEFAULT_BASE_KEYMAP="${DEFAULT_BASE_KEYMAP:-us}" # Console key-map
+export DEFAULT_BASE_LANGUAGE="${DEFAULT_BASE_LANGUAGE:-en_GB}" # Locale string
+#
+# ----------------------------------------------------------------------
+# OSTree system configuration
+# ----------------------------------------------------------------------
+#
+# These variables define the structure and behaviour of an OSTree-based
+# immutable system.  Largely can remain unchanged.
+#
+export OSTREE_STATEROOT="${OSTREE_STATEROOT:-yorha}" # Deployment namespace identifier (conventionally under `/ostree/deploy`) 
+export OSTREE_BRANCH="${OSTREE_BRANCH:-${OSTREE_STATEROOT}/x86_64/standard}" # OSTree branch reference name (<stateroot>/<architecture>/<ref>)
+# Mount points for deployments and upgrades
+export OSTREE_SYS_ROOT="${OSTREE_SYS_ROOT:-/mnt}" # Mount point for target system during initial bootstrap.  Set to `/sysroot` if already an OSTree environment
+export OSTREE_SYS_SETUP="${OSTREE_SYS_SETUP:-${OSTREE_SYS_ROOT}/setup}" # Transient setup directory for container storage during initial bootstrap.  Set to `/tmp` if already an OSTree environment
+export OSTREE_SYS_TREE="${OSTREE_SYS_TREE:-${OSTREE_SYS_SETUP}/rootfs}" # The rootfs committed to OSTree (populated from an exported container image)
+# Partition labels for fstab mounting (must match actual file system labels)
+export OSTREE_SYS_BOOT_LABEL="${OSTREE_SYS_BOOT_LABEL:-SYS_BOOT}" # Boot partition label (holds kernel/initramfs)
+export OSTREE_SYS_ROOT_LABEL="${OSTREE_SYS_ROOT_LABEL:-SYS_ROOT}" # Root partition label (contains OSTree deployment)
+export OSTREE_SYS_VAR_LABEL="${OSTREE_SYS_VAR_LABEL:-SYS_VAR}" # Stateful partition label (Mounted at /var to preserve logs/config across deployments)
+
+[ "$OCI_REGISTRY" != "localhost" ] \
+  && export OCI_TAG="$OCI_REGISTRY/$GH_ACCOUNT/$GH_PROJECT/$DEFAULT_BASE" \
+  || export OCI_TAG="$OCI_REGISTRY/$OSTREE_STATEROOT/$DEFAULT_BASE"

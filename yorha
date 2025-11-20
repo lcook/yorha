@@ -1,0 +1,78 @@
+#!/usr/bin/env sh
+# vim: syntax=sh et ts=2 sw=2 sts=2
+set -eu
+
+export YORHA_LIBEXEC_PATH="${YORHA_LIBEXEC_PATH:-libexec}"
+load_libs ()
+{
+  for _file in "${YORHA_LIBEXEC_PATH}/"yorha-*; do
+    [ -f "$_file" ] && . "$_file"; done
+}
+
+dep ()
+{
+  _dep=$1
+  if ! command -v "$_dep" >/dev/null 2>&1; then
+    warn "'$_dep' (command not found) is required but not installed"
+    return 1
+  fi
+}
+
+check_deps ()
+{
+  _deps=""
+  for _dep in "$@"; do
+    if ! dep "$_dep"; then _deps="$_dep $_deps"; fi; done
+
+  [ -n "$_deps" ] && error "Dependencies not found: '${_deps%%\ }' - install and try again" || :
+}
+
+priv_check ()
+{
+  [ "$(id -u)" -ne 0 ] && error "root permission required to run the \`$1\` operation" || :
+}
+
+oci_runtime ()
+{
+  command -v podman ||
+  command -v docker ||
+  echo "$OCI_RUNTIME"
+}
+
+usage ()
+{
+  cat <<EOF
+Usage:
+  $(basename "$0") COMMAND
+
+System commands:
+  compose        Commands for building local container images for OSTree environments
+  upgrade        Commands for upgrading to the latest OSTree container image
+  live           Commands for preparing a live environment for installation/bootstrap
+  deployment     Commands for managing OSTree deployments
+
+Other commands:
+  fetch          Display system information
+  help           Show this help page
+
+EOF
+  exit 0
+}
+
+main ()
+{
+  [ $# -lt 1 ] && usage || load_libs
+ 
+  _opt=${1:-}
+  case $_opt in
+    compose)    main_compose    "$@" ;;
+    upgrade)    main_upgrade    "$@" ;;
+    live)       main_live       "$@" ;;
+    deployment) main_deployment "$@" ;;
+
+    fetch)      main_fetch      "$@" ;;
+    *)          usage                ;;
+  esac
+}
+
+main "$@"

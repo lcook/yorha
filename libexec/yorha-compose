@@ -1,0 +1,109 @@
+#!/usr/bin/env sh
+# vim: syntax=sh et ts=2 sw=2 sts=2
+
+builder_base_image ()
+{
+  _runtime="$1" _base="$2" _basedir="${YORHA_BASE_PATH}base/$_base"; [ ! -d "$_basedir" ] && \
+    error "Base directory for image $_base ($_basedir) does not exist"
+
+  OCI_TAG="$OCI_TAG-base:latest"
+
+  info "Starting build of base image $_base-base ($OCI_TAG) using $_basedir/Containerfile..."
+
+  run $_runtime build \
+    --file "$_basedir/Containerfile"  \
+    --tag "$OCI_TAG" \
+    --build-arg BASE_OPT_TIMEZONE="$DEFAULT_BASE_TIMEZONE" \
+    --build-arg BASE_OPT_KEYMAP="$DEFAULT_BASE_KEYMAP" \
+    --build-arg BASE_OPT_LANGUAGE="$DEFAULT_BASE_LANGUAGE"
+
+  info "Successfully built base image $_base-base as $OCI_TAG"
+}
+
+builder_ostree_image ()
+{
+  _runtime="$1" _base="$2" _basedir="${YORHA_BASE_PATH}base/$_base"; [ ! -d "$_basedir" ] && \
+    error "Base directory for image $_base ($_basedir) does not exist"
+
+  $_runtime image exists "$OCI_TAG-base:latest" || error "Base container image $_base ($OCI_TAG-base:latest) not found in local storage"
+
+  OCI_TAG="$OCI_TAG:latest"
+
+  info "Starting build of OSTree image $_base-$OSTREE_STATEROOT ($OCI_TAG) using $_basedir/Containerfile.yorha..."
+
+  run $_runtime build \
+    --file "$_basedir/Containerfile.yorha" \
+    --tag "$OCI_TAG" "${YORHA_BASE_PATH:-.}"
+
+  info "Successfully built OSTree image $_base-$OSTREE_STATEROOT as $OCI_TAG"
+}
+
+builder_flavor_image ()
+{
+  _runtime="$1" _base=$(echo $2 | cut -d- -f1) _basedir="${YORHA_BASE_PATH}base/$_base"; [ ! -d "$_basedir" ] && \
+    error "Base directory for image $_base ($_basedir) does not exist"
+  
+  _flavor=$(echo $2 | cut -d- -f2); [ ! -f "$_basedir/flavor/$_flavor" ] && \
+    error "Flavor for image $_base ($_basedir/flavor/$_flavor) does not exist"
+
+  OCI_TAG="$OCI_TAG-$_flavor:latest"
+
+  info "Starting build of flavor $OCI_TAG using $_basedir/flavor/$_flavor..."
+
+  run $_runtime build \
+    --file "$_basedir/flavor/$_flavor" \
+    --tag "$OCI_TAG" "${YORHA_BASE_PATH:-.}"
+}
+
+builder_ostree_run ()
+{
+  _runtime="$1"
+
+  OCI_TAG="$OCI_TAG:latest"
+
+  $_runtime image exists "$OCI_TAG" || error "OSTree container image $OCI_TAG not found in local storage"
+
+  info "Spawning interactive shell inside container image $OCI_TAG..."
+
+  run $_runtime run -it --rm "$OCI_TAG"
+}
+
+usage_local () 
+{
+cat <<EOF
+Usage:
+  $(basename "$0") compose COMMAND [OPTIONS...]
+
+Commands for building local container images for OSTree environments
+
+  container-base  Build the base system container image (default: $DEFAULT_BASE)
+  container       Build the OSTree container image (default $DEFAULT_BASE)
+  flavor          Build flavor (defualt: $DEFAULT_BASE-$DEFAULT_FLAVOR)
+  run             Open an interactive shell inside the final OSTree container image (default: $DEFAULT_BASE)
+
+EOF
+  exit 0
+}
+
+main_compose ()
+{
+  [ $# -lt 1 ] && usage_local || shift
+  [ $OCI_REGISTRY != "localhost" ] && [ ! -v GITHUB_ACTIONS ] \
+    && error "\`compose\` operation only compatible with a local image (OCI_REGISTRY defined as $OCI_REGISTRY in $YORHA_LIBEXEC_PATH/yorha-config)"
+
+  _sub=${1:-} _base=${2:-$DEFAULT_BASE} _flavor=${DEFAULT_FLAVOR} _runtime=$(oci_runtime)
+  check_deps "$_runtime"
+
+  case $_sub in
+    container-base) builder_base_image    "$_runtime" "$_base" ;;
+    container)      builder_ostree_image  "$_runtime" "$_base" ;;
+    flavor)         [ $# -eq 1 ] && [ -z "$_flavor" ] \
+      && error "DEFAULT_FLAVOR could not be inferred from the configuration located at $YORHA_LIBEXEC_PATH/yorha-config" \
+      || _base="$_base-$_flavor"
+                    builder_flavor_image  "$_runtime" "$_base" ;;
+    run)            builder_ostree_run    "$_runtime"          ;;
+    
+    *) warn "No \`compose\` subcommand specified" \
+        && usage_local
+  esac
+}

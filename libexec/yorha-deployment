@@ -1,0 +1,89 @@
+#!/usr/bin/env sh
+# vim: syntax=sh et ts=2 sw=2 sts=2
+
+deployment_list ()
+{
+  _list_deployments
+}
+
+deployment_switch ()
+{
+  _list_deployments
+
+  _range=$(ostree admin status -J | jq -r '.[][] | select(.stateroot | test("'"$OSTREE_STATEROOT"'")) | "\(.index)"' | awk '{
+  if (NR == 1 || $1 < min) min = $1
+  if (NR == 1 || $1 > max) max = $1
+  } END {
+    print min "-" max
+  }')
+
+  echo
+  read -r -p "Select deployment ($_range): " _index
+  run ostree admin set-default "$_index"
+}
+
+_list_deployments ()
+{
+  printf '%2s %-40s %-11s %-14s %-12s %9s\n' " " IMAGE CHECKSUM VERSION CREATED STATUS
+  ostree admin status -J | jq -r '.[][] | select(.stateroot | test("'"$OSTREE_STATEROOT"'")) | "\(.booted) \(.index) \(.checksum) \(.staged) \(.pending) \(.rollback) \(.pinned)"' | \
+    while read -r _booted _index _checksum _staged _pending _rollback _pinned
+    do
+      _checksum=$(echo "$_checksum" | cut -c-11)
+      _deploy=$(ls -d /ostree/deploy/"$OSTREE_STATEROOT"/deploy/"$_checksum"* | grep -v origin)
+      _version=$(sed -En "s,^VERSION=(.*),\1,p" "$_deploy"/etc/os-release)
+      _image=$(sed -En "s,^IMAGE=(.*),\1,p" "$_deploy"/etc/os-release)
+
+      _date=$(echo "$_version" | sed "s,\., ,")
+      _elapsed_seconds=$(($(date -d today +%s)-$(date -d "$_date" +%s)))
+      if [ "$_elapsed_seconds" -lt 60 ]; then
+        _elapsed="just now"
+      elif [ "$_elapsed_seconds" -lt 3600 ]; then
+        _minutes=$((_elapsed_seconds/60))
+        _elapsed="$_minutes $([ "$_minutes" -eq 1 ] && echo minute || echo minutes) ago"
+      elif [ "$_elapsed_seconds" -lt 86400 ]; then
+        _hours=$((_elapsed_seconds/3600))
+        _elapsed="$_hours $([ "$_hours" -eq 1 ] && echo hour || echo hours) ago"
+      else
+        _days=$((_elapsed_seconds/86400))
+        _elapsed="$_days $([ "$_days" -eq 1 ] && echo day || echo days) ago"
+      fi
+
+      _status=""
+      [ "$_staged"   = "true" ] && _status="$_status staged"
+      [ "$_pending"  = "true" ] && _status="$_status pending"
+      [ "$_rollback" = "true" ] && _status="$_status rollback"
+      [ "$_pinned"   = "true" ] && _status="$_status pinned"
+      [ "$_booted"   = "true" ] && _status="$_status booted"
+
+      printf '%2s %-40s %-11s %-14s %-12s %-9s\n' "$_index" "$_image" "$_checksum" "$_version" "$_elapsed" "$_status"
+    done
+}
+
+usage_deployment ()
+{
+cat <<EOF
+Usage:
+  $(basename "$0") deployment COMMAND
+
+Commands for managing OSTree deployments
+
+  list      List all deployments
+  switch    Switch to a deployment INDEX
+
+EOF
+  exit 0
+}
+
+main_deployment ()
+{
+  [ $# -lt 1 ] && usage_deployment || shift
+
+  _sub=${1:-}
+  case $_sub in
+    list)   deployment_list                         "$@" ;;
+    switch) priv_check "$_sub" && deployment_switch "$@" ;;
+
+    *) warn "No \`deployment\` subcommand specified" \
+        && usage_deployment ;;
+  esac
+}

@@ -1,0 +1,58 @@
+FROM docker.io/library/archlinux:latest
+
+RUN rm -rf /etc/pacman.d/gnupg && pacman-key --init && pacman-key --populate
+
+RUN sed -i -e "/^NoExtract/d" /etc/pacman.conf && pacman --noconfirm -Syu
+
+RUN pacman --noconfirm -Sy
+
+ARG BASE_OPT_TIMEZONE
+RUN ln -sf /usr/share/zoneinfo/${BASE_OPT_TIMEZONE} /etc/localtime
+
+ARG BASE_OPT_KEYMAP
+RUN echo "KEYMAP=${BASE_OPT_KEYMAP}" | tee /etc/vconsole.conf
+
+ARG BASE_OPT_LANGUAGE
+RUN echo "LANG=${BASE_OPT_LANGUAGE}.UTF-8" | tee /etc/locale.conf \
+    && echo "${BASE_OPT_LANGUAGE}.UTF-8 UTF-8" | tee /etc/locale.gen \
+    && locale-gen
+
+RUN pacman --noconfirm -S networkmanager \
+    && systemctl enable NetworkManager.service \
+    && systemctl mask systemd-networkd-wait-online.service
+
+RUN mkdir -p /etc/mkinitcpio.conf.d \
+    && echo "HOOKS=(base systemd ostree autodetect modconf kms keyboard sd-vconsole block filesystems fsck)" \
+        >>/etc/mkinitcpio.conf.d/ostree.conf
+
+RUN pacman --noconfirm -Syuu \
+    linux-zen \
+    linux-zen-headers \
+    linux-firmware \
+    amd-ucode \
+    intel-ucode \
+    \
+    dosfstools \
+    xfsprogs \
+    \
+    grub \
+    mkinitcpio \
+    efibootmgr \
+    \
+    ostree \
+    skopeo \
+    podman \
+    which
+
+RUN moduledir=$(find /usr/lib/modules -mindepth 1 -maxdepth 1 -type d) kernel=$(cat ${moduledir}/pkgbase) \
+    && cat /boot/*-ucode.img /boot/initramfs-${kernel}.img >${moduledir}/initramfs.img
+
+RUN echo "options overlay metacopy=off redirect_dir=off" >/etc/modprobe.d/disable-overlay-redirect-dir.conf
+
+RUN { \
+        echo "LABEL=SYS_ROOT /          auto  rw,relatime                                                                                           0 1"; \
+        echo "LABEL=SYS_VAR  /var       auto  rw,relatime                                                                                           0 2"; \
+        echo "LABEL=SYS_BOOT /boot/efi vfat rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro 0 2"; \
+     } > /etc/fstab
+
+RUN echo "root:ostree" | chpasswd

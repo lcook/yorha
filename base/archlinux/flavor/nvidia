@@ -1,0 +1,26 @@
+ARG IMAGE=localhost/yorha/archlinux
+FROM $IMAGE:latest
+
+RUN echo "MODULES+=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)" >/etc/mkinitcpio.conf.d/nvidia.conf
+
+RUN pacman --noconfirm -Sy \
+    nvidia-open-dkms \
+    libva-nvidia-driver
+
+RUN { \
+	echo "modprobe.blacklist=nouveau"; \
+	echo "rd.driver.blacklist=nouveau"; \
+	echo "nvidia-drm.modeset=1"; \
+	echo "nvidia-drm.fbdev=1"; \
+    } >> /usr/share/yorha/.karg
+
+ARG IMAGE
+RUN IMAGE="$IMAGE-nvidia" DATE=$(date +%Y%m%d.%H%M) \
+    && sed -i \
+        -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"YoRHa Linux (nvidia) $DATE\"|" \
+        -e "s|^VERSION=.*|VERSION=$DATE|" \
+        -e "s|^IMAGE=.*|IMAGE=$IMAGE|" \
+        /usr/lib/os-release \
+        && ln -sf /usr/lib/os-release /etc/os-release
+
+RUN sed -i "s|DEFAULT_FLAVOR:-|DEFAULT_FLAVOR:-nvidia|" /usr/libexec/yorha-config

@@ -1,0 +1,104 @@
+#!/usr/bin/env sh
+# vim: syntax=sh et ts=2 sw=2 sts=2
+
+disk_prepare ()
+{
+  check_deps mkfs.xfs mkfs.vfat parted
+
+  info "Probing available disk(s) for installation target..."
+
+  _dev=$(lsblk -e1,253 -nd -o PATH,MODEL,SIZE,STATE)
+
+  info "Detected available disk(s):\n\n$_dev\n"
+
+  read -r -p ":: Enter the device path of the disk to format: " _disk
+  read -r -p ":: You entered: '$_disk', is this correct? [y/N] " _reply
+  if [ ! "$_reply" = "y" ] && [ ! "$_reply" = "Y" ]; then
+    error "Operation aborted by user"
+  fi
+
+  warn "All data on '$_disk' will be permanently erased"
+
+  read -r -p ":: Do you want to proceed with formatting '$_disk'? [y/N] " _reply
+  if [ ! "$_reply" = "y" ] && [ ! "$_reply" = "Y" ]; then
+    error "Operation aborted by user"
+  fi
+
+  OSTREE_DEV_DISK=$_disk
+  disk_create_layout
+  if echo "$OSTREE_DEV_DISK" | grep -q "nvme\|mmcblk"; then
+    OSTREE_DEV_BOOT="${OSTREE_DEV_DISK}p1"
+    OSTREE_DEV_ROOT="${OSTREE_DEV_DISK}p2"
+    OSTREE_DEV_VAR="${OSTREE_DEV_DISK}p3"
+  else
+    OSTREE_DEV_BOOT="${OSTREE_DEV_DISK}1"
+    OSTREE_DEV_ROOT="${OSTREE_DEV_DISK}2"
+    OSTREE_DEV_VAR="${OSTREE_DEV_DISK}3"
+  fi
+
+  disk_create_format
+  export OSTREE_DEV_BOOT OSTREE_DEV_ROOT OSTREE_DEV_VAR
+
+  info "Disk preparation complete"
+}
+
+disk_create_layout ()
+{
+  info "Creating partition layout on $OSTREE_DEV_DISK..."
+
+  run parted -a optimal -s "$OSTREE_DEV_DISK" -- \
+    mklabel gpt \
+    mkpart "$OSTREE_SYS_BOOT_LABEL" fat32 0% "${SYS_BOOT_SIZE:-500MiB}" \
+    set 1 esp on \
+    mkpart "$OSTREE_SYS_ROOT_LABEL" xfs "${SYS_BOOT_SIZE:-500MiB}" "${SYS_ROOT_SIZE:-50GiB}" \
+    mkpart "$OSTREE_SYS_VAR_LABEL" xfs "${SYS_ROOT_SIZE:-50GiB}" 100%
+}
+
+disk_create_format ()
+{
+  info "Formatting partitions, BOOT=$OSTREE_SYS_BOOT_LABEL, ROOT=$OSTREE_SYS_ROOT_LABEL, VAR=$OSTREE_SYS_VAR_LABEL..."
+
+  run mkfs.vfat -n "$OSTREE_SYS_BOOT_LABEL" -F 32 "$OSTREE_DEV_BOOT"
+  info "EFI boot partition ($OSTREE_DEV_BOOT) formatted with VFAT and labeled $OSTREE_SYS_BOOT_LABEL"
+
+  run mkfs.xfs -L "$OSTREE_SYS_ROOT_LABEL" -f "$OSTREE_DEV_ROOT" -n ftype=1
+  info "root partition ($OSTREE_DEV_ROOT) formatted with XFS and labeled $OSTREE_SYS_ROOT_LABEL"
+
+  run mkfs.xfs -L "$OSTREE_SYS_VAR_LABEL" -f "$OSTREE_DEV_VAR" -n ftype=1
+  info "var partition ($OSTREE_DEV_VAR) formatted with XFS and labeled $OSTREE_SYS_VAR_LABEL"
+}
+
+usage_live () 
+{
+cat <<EOF
+Usage:
+  $(basename "$0") live COMMAND [OPTIONS...]
+
+Commands for preparing a live environment for installation
+
+  prep-disk     Select and format a target disk, partitioning it for OSTree installation
+  init          Set up necessary mount points, initialize the OSTree repository and prepare storage for deployment
+  install       Extract and deploy the root filesystem to the target disk and configure the GRUB bootloader (default: $DEFAULT_BASE)
+
+EOF
+  exit 0
+}
+
+main_live ()
+{
+  [ $# -lt 1 ] && usage_live || shift
+
+  _sub=${1:-} _base=${2:-$DEFAULT_BASE} _runtime=$(oci_runtime)
+  case $_sub in
+    prep-disk) priv_check "$_sub" && disk_prepare                        ;;
+    init)      priv_check "$_sub" && ostree_init                         ;;
+    install)
+      priv_check "$_sub"
+
+      [ $# -gt 1 ] && OCI_TAG="$_base" || OCI_TAG="$OCI_TAG-$OSTREE_STATEROOT"
+      ostree_install "$_runtime" "$OCI_TAG" ;;
+
+    *) warn "No \`live\` subcommand specified" \
+        && usage_live
+  esac
+}

@@ -1,0 +1,17 @@
+ARG IMAGE=localhost/yorha/archlinux
+FROM $IMAGE:latest
+
+RUN pacman --noconfirm -Sy \
+    intel-media-driver \
+    vulkan-intel
+
+ARG IMAGE
+RUN IMAGE="$IMAGE-intel" DATE=$(date +%Y%m%d.%H%M) \
+    && sed -i \
+        -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"YoRHa Linux (intel) $DATE\"|" \
+        -e "s|^VERSION=.*|VERSION=$DATE|" \
+        -e "s|^IMAGE=.*|IMAGE=$IMAGE|" \
+        /usr/lib/os-release \
+        && ln -sf /usr/lib/os-release /etc/os-release
+
+RUN sed -i "s|DEFAULT_FLAVOR:-|DEFAULT_FLAVOR:-intel|" /usr/libexec/yorha-config

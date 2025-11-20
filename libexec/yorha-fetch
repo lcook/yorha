@@ -1,0 +1,41 @@
+#!/usr/bin/env sh
+# vim: syntax=sh et ts=2 sw=2 sts=2
+
+origin           () { or=$(ostree admin status -J | jq -r '.[][] | select(.booted == true) | .checksum' | cut -c1-11); [ -n "$or" ] && echo "$or" || echo N/A; }
+reference        () { ref=$(ostree refs 2>/dev/null | tail -n1); [ -n "$ref" ] && echo "$ref" || echo N/A;        }
+pacman_packages  () { pacman -Qet 2>/dev/null | wc -l;                                                            }
+flatpak_packages () { flatpak list --app 2>/dev/null | wc -l;                                                     }
+core             () { lscpu | grep "Model name:" | sed -r 's/Model name:\s{1,}//g';                               }
+graphics         () { lspci | grep -iE 'VGA|3D|video' | sed 's,^.*: ,,' | head -n1;                               }
+memory           () { awk '/MemTotal/ {total=$2} /MemAvailable/ {avail=$2} END {used=(total-avail)/1024/1024; printf "%.2f GB / %.2f GB\n", used, total/1024/1024}' /proc/meminfo; }
+
+main_fetch ()
+{
+  if [ -f /etc/os-release ]     || \
+     [ -f /usr/lib/os-release ] || \
+     [ -f /etc/lsb-release ]; then
+    for _file in /etc/os-release     \
+                 /usr/lib/os-release \
+                 /etc/lsb-release; do
+      . "$_file" && break
+    done
+  fi
+
+  cat <<EOF
+
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣴⣾⣶⣦⣄⠀⢸⣿      $(printf '%b' "\e[1mOperating System\e[0m     $PRETTY_NAME ($(uname -m))")
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⣿⣿⣿⣿⡿⠀⢸⡿      $(printf '%b' "\e[1mKernel\e[0m .........     $(uname -r)")
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⠿⠛⠋⠉⠁⠀⣾⠃⢀⠀⠀⠀  $(printf '%b' "\e[1mUptime\e[0m .........     $(uptime -p | sed 's,^up ,,')")
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣷⣶⣶⣾⣿⠀⢰⠇⠀⢸⣧⠀⠀  $(printf '%b' "\e[1mPackages\e[0m .......     $(pacman_packages) (pacman), $(flatpak_packages) (flatpak)")
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⠿⠿⠿⠃⢠⠋⢠⠀⢸⣿⡇⠀  $(printf '%b' "\e[1mCore\e[0m ...........     $(core)")
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣭⣤⣤⣤⣤⠀⠀⠁⢰⣿⡀⢸⣿⣿⠀  $(printf '%b' "\e[1mGraphics\e[0m .......     $(graphics)")
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣿⠟⠁⠀⢀⠀⣸⣿⡇⣿⣿⡇⠀  $(printf '%b' "\e[1mMemory\e[0m .........     $(memory)")
+⠀⠀⠀⠀⠀⠀⠀⠀⢠⣾⣿⣿⣿⣿⣭⠉⠁⠀⢀⣴⣿⠀⣿⣿⣿⣿⡟⠀⠀  $(printf '%b' "\e[1mDeployment\e[0m .....     $(reference):$(origin)")
+⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⣿⣿⡿⠛⠁⣀⣤⠀⣿⣿⣿⣸⣿⣿⣿⠏⠀⠀⠀  $(printf '%b' "\e[1mImage\e[0m ..........     $IMAGE")
+⠀⠀⠀⣀⣤⣾⣿⣿⣿⣿⣟⣩⣤⣶⣿⣿⣿⣰⣿⣿⣿⣿⠿⠋⠁
+⠀⠲⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠟⠋⠁
+⠀⠀⠀⠀⠈⠉⠉⠛⠛⠛⠛⠛⠛⠉
+
+EOF
+}

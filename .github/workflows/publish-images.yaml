@@ -1,0 +1,40 @@
+name: Build and deploy image(s) to ghcr.io
+on:
+  push:
+    branches:
+      - main
+  schedule:
+   - cron: '0 19 * * FRI'
+  workflow_dispatch:
+
+env:
+  OCI_REGISTRY: ghcr.io
+  GH_ACCOUNT: ${{ github.actor }}
+  GH_PROJECT: ${{ github.event.repository.name }}
+  OSTREE_STATEROOT: yorha
+  DEFAULT_BASE: archlinux
+
+jobs:
+  build-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+            submodules: recursive
+
+      - name: Login to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login --username "${{ github.actor }}" --password-stdin $OCI_REGISTRY
+
+      - name: Build container images and publish
+        run: |
+          sed -i "0,/localhost/s/localhost/$OCI_REGISTRY/" libexec/yorha-config
+          sed -i "s|IMAGE=localhost|IMAGE=$OCI_REGISTRY/$GH_ACCOUNT|g" base/$DEFAULT_BASE/Containerfile.yorha base/$DEFAULT_BASE/flavor/*
+          ./yorha compose container-base
+          ./yorha compose container
+          for _image in $OCI_REGISTRY/$GH_ACCOUNT/$GH_PROJECT/$DEFAULT_BASE-base \
+            $OCI_REGISTRY/$GH_ACCOUNT/$GH_PROJECT/$DEFAULT_BASE; do podman push $_image; done
+          for _flavor in nvidia intel; do
+            ./yorha compose flavor $DEFAULT_BASE-$_flavor
+            podman push $OCI_REGISTRY/$GH_ACCOUNT/$GH_PROJECT/$DEFAULT_BASE-$_flavor
+          done

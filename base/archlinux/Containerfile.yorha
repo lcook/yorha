@@ -1,0 +1,132 @@
+ARG IMAGE=localhost/yorha/archlinux-base
+FROM $IMAGE:latest AS builder
+
+RUN pacman --noconfirm -S \
+    git \
+    sudo \
+    fakeroot \
+    debugedit \
+    pkgconf \
+    gcc
+
+RUN useradd -m builder \
+    && echo "builder ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/builder
+
+RUN for _pkg in tofi; do \
+    git clone https://aur.archlinux.org/$_pkg.git /tmp/$_pkg \
+    && chown -R builder:builder /tmp/$_pkg \
+    && sudo -u builder makepkg -D /tmp/$_pkg -sc --noconfirm OPTIONS=-debug; done
+
+FROM $IMAGE:latest
+
+COPY --from=builder /tmp/*/*.zst /tmp
+RUN for _pkg in /tmp/*.zst; do pacman --noconfirm -U $_pkg && rm -f $_pkg; done
+
+RUN pacman --noconfirm -S ly && systemctl enable ly.service
+
+RUN pacman --noconfirm -S flatpak && flatpak remote-add --if-not-exists flathub \
+    https://dl.flathub.org/repo/flathub.flatpakrepo
+
+RUN pacman --noconfirm -S \
+    # Fonts
+    otf-font-awesome \
+    ttf-nerd-fonts-symbols \
+    ttc-iosevka \
+    noto-fonts \
+    noto-fonts-cjk \
+    noto-fonts-emoji
+
+RUN pacman --noconfirm -Syuu \
+    # Command-line utilities
+    fish \
+    vim \
+    wget \
+    sudo \
+    inetutils \
+    openssh \
+    git \
+    less \
+    man-db \
+    man-pages \
+    \
+    # Audio
+    pipewire-alsa \
+    pipewire-audio \
+    pipewire-jack \
+    pipewire-pulse \
+    # Bluetooth \
+    bluez \
+    bluez-utils \
+    \
+    # Desktop enviroment
+    xdg-desktop-portal-gtk \
+    xdg-desktop-portal-wlr \
+    nwg-displays \
+    hyprland \
+    hyprlock \
+    hyprpaper \
+    hyprpicker \
+    hyprshot \
+    waybar \
+    mako \
+    ghostty \
+    brightnessctl \
+    \
+    # Development
+    toolbox
+
+RUN systemctl enable seatd.service
+
+RUN echo "%wheel ALL=(ALL) ALL" >/etc/sudoers.d/10-wheel
+RUN echo "%wheel ALL=NOPASSWD: /usr/bin/ostree" >/etc/sudoers.d/20-ostree
+RUN { \
+        echo "Cmnd_Alias YORHA = /usr/bin/yorha \"\",/usr/bin/yorha compose *,/usr/bin/yorha upgrade *,/usr/bin/yorha deployment *"; \
+        echo "Defaults!YORHA env_keep +=YORHA_BASE_PATH"; \
+        echo "Defaults!YORHA env_keep +=YORHA_LIBEXEC_PATH"; \
+        echo "Defaults!YORHA env_keep +=OSTREE_STATEROOT"; \
+        echo "Defaults!YORHA env_keep +=OSTREE_BRANCH"; \
+        echo "%wheel ALL=NOPASSWD: YORHA"; \
+    } > /etc/sudoers.d/30-yorha
+
+ARG IMAGE
+RUN IMAGE=$(echo $IMAGE | sed "s|-base||") DATE=$(date +%Y%m%d.%H%M) \
+    && { \
+        echo 'NAME="YoRHa Linux"'; \
+        echo "ID=yorha"; \
+        echo "ID_LIKE=arch"; \
+        echo "PRETTY_NAME=\"YoRHa Linux $DATE\""; \
+        echo "VERSION=$DATE"; \
+        echo "LOGO=yorha"; \
+        echo "ANSI_COLOR=\"0;38;2;100;44;254;48;2;255;255;255\""; \
+        echo "IMAGE=$IMAGE"; \
+    } > /usr/lib/os-release \
+    && ln -sf /usr/lib/os-release /etc/os-release
+
+RUN sed -i "s|^## distro =.*|distro = \"arch\"|" /etc/containers/toolbox.conf
+
+COPY yorha /usr/bin/yorha
+RUN sed -i "s|libexec|/usr/libexec|" /usr/bin/yorha
+
+COPY base /usr/share/yorha/base
+
+RUN { \
+	echo "quiet"; \
+	echo "loglevel=3"; \
+	echo "systemd.show_status=auto"; \
+	echo "rd.udev.log_level=3"; \
+	echo "modprobe.blacklist=iTCO_wdt,sp5100_tco"; \
+	echo "nmi_watchdog=0"; \
+	echo "nowatchdog"; \
+	} > /usr/share/yorha/.karg
+
+COPY libexec /usr/libexec
+RUN sed -i "s|YORHA_BASE_PATH:-|YORHA_BASE_PATH:-/usr/share/yorha/|" /usr/libexec/yorha-config
+
+COPY dots /tmp/dots
+RUN cd /tmp/dots \
+    && python themer/themer.py --config theme.conf --theme nebula \
+    && mkdir -p /etc/skel/.config \
+    && mv {fish,ghostty,hypr,mako,tofi,waybar} /etc/skel/.config \
+    && rm -rf /tmp/dots
+
+ENTRYPOINT ["/bin/fish", "-c", "yorha fetch && fish"]

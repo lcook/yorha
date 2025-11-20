@@ -1,0 +1,259 @@
+#!/usr/bin/env sh
+# vim: syntax=sh et ts=2 sw=2 sts=2
+
+ostree_init ()
+{
+  _ostree_create_mounts
+  _ostree_create_repo
+  _ostree_patch_storage
+}
+
+ostree_install ()
+{
+  _ostree_create_rootfs "$1" "$2"
+  _ostree_create_layout
+  _ostree_deploy_image
+  _ostree_install_bootloader
+}
+
+ostree_upgrade ()
+{
+  ! [ -d /ostree ] && error "Upgrade aborted, this operation must be run inside a local OSTree environment" || {
+    info "Preparing to upgrade system..."
+
+    export OSTREE_SYS_ROOT=/sysroot
+    export OSTREE_SYS_SETUP=/tmp
+    export OSTREE_SYS_TREE=$OSTREE_SYS_SETUP/rootfs
+
+    info "OSTREE_SYS_ROOT set to $OSTREE_SYS_ROOT"
+    info "OSTREE_SYS_SETUP set to $OSTREE_SYS_SETUP"
+    info "OSTREE_SYS_TREE set to $OSTREE_SYS_TREE"
+  }
+
+  _ostree_create_rootfs "$1" "$2"
+  _ostree_create_layout
+  _ostree_deploy_image
+
+  info "System upgrade complete, type \`systemctl reboot\` to use the new deployment"
+}
+
+_ostree_create_mounts ()
+{
+  info "Preparing to setup OSTree mountpoints..."
+
+  run mount --mkdir "$OSTREE_DEV_ROOT" "$OSTREE_SYS_ROOT"
+
+  info "Mounted root device ($OSTREE_DEV_ROOT) at $OSTREE_SYS_ROOT"
+
+  run mount --mkdir "$OSTREE_DEV_BOOT" "$OSTREE_SYS_ROOT/boot/efi"
+
+  info "Mounted EFI boot device ($OSTREE_DEV_BOOT) at $OSTREE_SYS_ROOT/boot/efi"
+}
+
+_ostree_patch_storage ()
+{
+  info "Patching container storage..."
+
+  run sed -i -e 's|^\(graphroot\s*=\s*\).*|\1"'"$OSTREE_SYS_SETUP"'/container-storage"|g' /etc/containers/storage.conf
+  run sed -i -e 's|^# \(image_copy_tmp_dir\s*=\s*\).*|\1"'"$OSTREE_SYS_SETUP"'/container-tmp"|g' /etc/containers/containers.conf
+  run mkdir -p "$OSTREE_SYS_SETUP/container-tmp"
+}
+
+_ostree_create_repo ()
+{
+  info "Initialising OSTree repository for stateroot $OSTREE_STATEROOT..."
+
+  run ostree admin init-fs --sysroot="$OSTREE_SYS_ROOT" --modern "$OSTREE_SYS_ROOT"
+  run ostree admin stateroot-init --sysroot="$OSTREE_SYS_ROOT" "$OSTREE_STATEROOT"
+  run ostree init --repo="$OSTREE_SYS_ROOT/ostree/repo" --mode=bare
+  run ostree config --repo="$OSTREE_SYS_ROOT/ostree/repo" set sysroot.bootprefix true
+
+  info "OSTree repository initialisation complete"
+}
+
+_ostree_create_rootfs ()
+{
+  _runtime="$1" _base="$2"
+  info "Preparing to create root filesystem with container image $_base..."
+
+  [ -d "$OSTREE_SYS_TREE" ] && {
+    warn "Existing root filesystem found at $OSTREE_SYS_TREE, removing old files before creating a new root filesystem"
+    run rm -r "$OSTREE_SYS_TREE"
+  }
+  run mkdir -p "$OSTREE_SYS_TREE"
+
+  info "Exporting root filesytem from container image $_base to $OSTREE_SYS_TREE..."
+
+  $_runtime export $($_runtime create "$_base" sh) | tar -xC "$OSTREE_SYS_TREE"
+
+  info "Container image root filesystem exported to $OSTREE_SYS_TREE"
+}
+
+_ostree_create_layout ()
+{
+  info "Creating OSTree filesystem layout in $OSTREE_SYS_TREE..."
+
+  touch "$OSTREE_SYS_TREE/etc/machine-id"
+  run mv "$OSTREE_SYS_TREE/etc" "$OSTREE_SYS_TREE/usr/"
+  run rm -r "$OSTREE_SYS_TREE/home"
+  run ln -s /var/home "$OSTREE_SYS_TREE/home"
+  run rm -r "$OSTREE_SYS_TREE/mnt"
+  run ln -s /var/mnt "$OSTREE_SYS_TREE/mnt"
+  run rm -r "$OSTREE_SYS_TREE/root"
+  run ln -s /var/roothome "$OSTREE_SYS_TREE/root"
+  run rm -r "$OSTREE_SYS_TREE/srv"
+  run ln -s /var/srv "$OSTREE_SYS_TREE/srv"
+  run mkdir "$OSTREE_SYS_TREE/sysroot"
+  run ln -s /sysroot/ostree "$OSTREE_SYS_TREE/ostree"
+  run rm -r "$OSTREE_SYS_TREE/usr/local"
+  run ln -s /var/usrlocal "$OSTREE_SYS_TREE/usr/local"
+
+  info "Writing systemd-tmpfiles(8) configuration..."
+
+  cat << EOF >> "$OSTREE_SYS_TREE/usr/lib/tmpfiles.d/ostree-0-integration.conf"
+  d /var/home 0755 root root -
+  d /var/lib 0755 root root -
+  d /var/log/journal 0755 root root -
+  d /var/mnt 0755 root root -
+  d /var/opt 0755 root root -
+  d /var/roothome 0700 root root -
+  d /var/srv 0755 root root -
+  d /var/usrlocal 0755 root root -
+  d /var/usrlocal/bin 0755 root root -
+  d /var/usrlocal/etc 0755 root root -
+  d /var/usrlocal/games 0755 root root -
+  d /var/usrlocal/include 0755 root root -
+  d /var/usrlocal/lib 0755 root root -
+  d /var/usrlocal/man 0755 root root -
+  d /var/usrlocal/sbin 0755 root root -
+  d /var/usrlocal/share 0755 root root -
+  d /var/usrlocal/src 0755 root root -
+  d /run/media 0755 root root -
+EOF
+
+  run mv "$OSTREE_SYS_TREE/var/lib/pacman" "$OSTREE_SYS_TREE/usr/lib/"
+  run sed -i \
+      -e "s|^#\(DBPath\s*=\s*\).*|\1/usr/lib/pacman|g" \
+      -e "s|^#\(IgnoreGroup\s*=\s*\).*|\1modified|g" \
+      "$OSTREE_SYS_TREE/usr/etc/pacman.conf"
+
+  run rm -r "$OSTREE_SYS_TREE/var/"*
+
+  run chmod u-s "$OSTREE_SYS_TREE"/usr/bin/new[gu]idmap
+  run setcap cap_setuid+eip "$OSTREE_SYS_TREE/usr/bin/newuidmap"
+  run setcap cap_setgid+eip "$OSTREE_SYS_TREE/usr/bin/newgidmap"
+}
+
+_ostree_deploy_image ()
+{
+  info "Committing new root filesystem to OSTree branch $OSTREE_BRANCH from $OSTREE_SYS_TREE..."
+
+  run ostree commit --repo="$OSTREE_SYS_ROOT/ostree/repo" --branch="$OSTREE_BRANCH" --tree=dir="$OSTREE_SYS_TREE"
+
+  _kargs="root=LABEL=$OSTREE_SYS_ROOT_LABEL rw"
+  [ -f "$OSTREE_SYS_TREE"/usr/share/yorha/.karg ] && {
+      while read -r _karg; do
+        _kargs="$_kargs $_karg"
+      done < "$OSTREE_SYS_TREE"/usr/share/yorha/.karg
+  }
+  run ostree admin deploy --sysroot="$OSTREE_SYS_ROOT" --karg-none --karg="$_kargs" --os="$OSTREE_STATEROOT" --retain "$OSTREE_BRANCH"
+
+  [ -d /ostree ] && run grub-mkconfig -o /boot/efi/EFI/grub/grub.cfg || :
+}
+
+_ostree_install_bootloader ()
+{
+  info "Installing and configuring GRUB bootloader for OSTree deployment..."
+
+  run grub-install --target=x86_64-efi --efi-directory="$OSTREE_SYS_ROOT/boot/efi" --removable --boot-directory="$OSTREE_SYS_ROOT/boot/efi/EFI" --bootloader-id="$OSTREE_STATEROOT" "$OSTREE_DEV_BOOT"
+
+  export OSTREE_SYS_PATH=$(find "$OSTREE_SYS_ROOT/ostree/deploy/$OSTREE_STATEROOT/deploy" -maxdepth 1 -mindepth 1 -type d)
+  run rm -rf "$OSTREE_SYS_PATH/boot/"*
+
+  run mount --mkdir --rbind "$OSTREE_SYS_ROOT/boot" "$OSTREE_SYS_PATH/boot"
+  run mount --mkdir --rbind "$OSTREE_SYS_ROOT/ostree" "$OSTREE_SYS_PATH/sysroot/ostree"
+  for _dev in /dev /proc /sys; do run mount -o bind "$_dev" "$OSTREE_SYS_PATH$_dev"; done
+  
+  run chroot "$OSTREE_SYS_PATH" /bin/bash -c "grub-mkconfig -o /boot/efi/EFI/grub/grub.cfg"
+  run rm -rf "$OSTREE_SYS_SETUP"
+ 
+  run umount -R "$OSTREE_SYS_ROOT"
+}
+
+usage_upgrade () 
+{
+cat <<EOF
+Usage:
+  $(basename "$0") upgrade COMMAND [OPTIONS...]
+
+Commands for upgrading an OSTree deployment with a newer container image
+
+  local      Create a new OSTree revision from a local storage container image
+  remote     Create a new OSTree revision from a remote container image registry
+
+EOF
+  exit 0
+}
+
+main_upgrade ()
+{
+  [ $# -lt 1 ] && usage_upgrade || shift
+
+  check_deps ostree
+
+  _sub=${1:-} _base=${2:-$DEFAULT_BASE} _flavor=${DEFAULT_FLAVOR} _runtime=$(oci_runtime)
+  case $_sub in
+    local)
+      if [ "$OCI_REGISTRY" != "localhost" ]; then
+        error "\`local\` upgrade operation only compatible with a local image (OCI_REGISTRY defined as $OCI_REGISTRY in $YORHA_LIBEXEC_PATH/yorha-config)"
+      elif [ $# -gt 1 ] && ! echo "$_base" | grep -q localhost; then
+        error "\`local\` upgrade operation only compatible with a local registry"
+      fi
+      
+      priv_check "$_sub"
+
+      [ -n "$_flavor" ] && OCI_TAG="$OCI_TAG-$_flavor"
+      [ $# -gt 1 ] && OCI_TAG="$_base"
+     
+      if ! $_runtime image exists "$OCI_TAG"; then
+         [ -n "$_flavor" ] && [ $# -eq 1 ] && error "$OCI_TAG image flavor not found in local storage. Ensure the image has been built using \`$(basename "$0") compose flavor [\$base-\$flavor]" \
+           || error "$OCI_TAG image not found in local storage. Ensure the image have been built using \`$(basename "$0") compose container\`"
+      fi 
+    
+      ! $_runtime image exists "$OCI_TAG-base" && [ $# -eq 1 ] && error "$OCI_TAG-base base image not found in local storage. Ensure the image has bene built using \`$(basename "$0") compose container-base\`"
+
+      ostree_upgrade "$_runtime" "$OCI_TAG" ;;
+
+    remote)
+      if [ $# -eq 1 ] && [ "$OCI_REGISTRY" = "localhost" ]; then
+        error "\`remote\` upgrade operation expects a remote container registry (OCI_REGISTRY defined as $OCI_REGISTRY in $YORHA_LIBEXEC_PATH/yorha-config)"
+      elif [ $# -gt 1 ] && ! echo "$_base" | grep -qE "(ghcr|docker|quay)"; then
+        error "\`remote\` upgrade operation expected one of the following container registries: ghcr.io, docker.io or quay.io"
+      fi
+
+      priv_check "$_sub"
+
+      [ -n "$_flavor" ] && OCI_TAG="$OCI_TAG-$_flavor"
+      [ $# -gt 1 ] && OCI_TAG="$_base"
+
+      if ! $_runtime image exists "$OCI_TAG"; then
+        warn "Container image $OCI_TAG not found in local storage, pulling..."
+        run $_runtime pull "$OCI_TAG"
+      elif [ -d /ostree ]; then
+        info "Checking for newer container images $OCI_TAG..."
+        _local_digest=$(podman inspect --format '{{.Digest}}' "$OCI_TAG" | cut -c-17)
+        _remote_digest=$(skopeo inspect --format '{{.Digest}}' "docker://$OCI_TAG" | cut -c-17)
+        if [ "$_local_digest" != "$_remote_digest" ]; then
+          info "Newer container image is available (old digest: $_local_digest, new: $_remote_digest), pulling..."
+          run $_runtime pull "$OCI_TAG"
+        else
+          error "No update found as local and remote container image are identical"
+        fi
+      fi
+
+      ostree_upgrade "$_runtime" "$OCI_TAG" ;;
+
+    *) warn "No \`upgrade\` subcommand specified" \
+        && usage_upgrade
+  esac
+}

@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# vim: syntax=sh et ts=2 sw=2 sts=2
+
+_msg  () { printf "%b\n" "$*"; }
+info  () { _msg "$*"; }
+warn  () { _msg "$*"; }
+error () { _msg "\e\033[0;31merror:\e\033[0m $*" >&2 && exit 1; }
+run   () { _msg " \e\033[0;34mexec:\e\033[0m $*"; "$@"; }
