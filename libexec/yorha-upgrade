@@ -97,6 +97,7 @@ _ostree_create_layout ()
   run mv "$OSTREE_SYS_TREE/etc" "$OSTREE_SYS_TREE/usr/"
   run rm -r "$OSTREE_SYS_TREE/home"
   run ln -s /var/home "$OSTREE_SYS_TREE/home"
+  run ln -s /var/scratch "$OSTREE_SYS_TREE/scratch"
   run rm -r "$OSTREE_SYS_TREE/mnt"
   run ln -s /var/mnt "$OSTREE_SYS_TREE/mnt"
   run rm -r "$OSTREE_SYS_TREE/root"
@@ -111,24 +112,25 @@ _ostree_create_layout ()
   info "Writing systemd-tmpfiles(8) configuration..."
 
   cat << EOF >> "$OSTREE_SYS_TREE/usr/lib/tmpfiles.d/ostree-0-integration.conf"
-  d /var/home 0755 root root -
-  d /var/lib 0755 root root -
-  d /var/log/journal 0755 root root -
-  d /var/mnt 0755 root root -
-  d /var/opt 0755 root root -
-  d /var/roothome 0700 root root -
-  d /var/srv 0755 root root -
-  d /var/usrlocal 0755 root root -
-  d /var/usrlocal/bin 0755 root root -
-  d /var/usrlocal/etc 0755 root root -
-  d /var/usrlocal/games 0755 root root -
-  d /var/usrlocal/include 0755 root root -
-  d /var/usrlocal/lib 0755 root root -
-  d /var/usrlocal/man 0755 root root -
-  d /var/usrlocal/sbin 0755 root root -
-  d /var/usrlocal/share 0755 root root -
-  d /var/usrlocal/src 0755 root root -
-  d /run/media 0755 root root -
+d /var/home 0755 root root -
+d /var/scratch/users 0755 root root -
+d /var/lib 0755 root root -
+d /var/log/journal 0755 root root -
+d /var/mnt 0755 root root -
+d /var/opt 0755 root root -
+d /var/roothome 0700 root root -
+d /var/srv 0755 root root -
+d /var/usrlocal 0755 root root -
+d /var/usrlocal/bin 0755 root root -
+d /var/usrlocal/etc 0755 root root -
+d /var/usrlocal/games 0755 root root -
+d /var/usrlocal/include 0755 root root -
+d /var/usrlocal/lib 0755 root root -
+d /var/usrlocal/man 0755 root root -
+d /var/usrlocal/sbin 0755 root root -
+d /var/usrlocal/share 0755 root root -
+d /var/usrlocal/src 0755 root root -
+d /run/media 0755 root root -
 EOF
 
   run mv "$OSTREE_SYS_TREE/var/lib/pacman" "$OSTREE_SYS_TREE/usr/lib/"

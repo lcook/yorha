@@ -19,7 +19,7 @@
 ![](.resources/screenshot_1.png)
 ![](.resources/screenshot_2.png)
 
-_Complimentary blog post can be found [here](https://www.lcook.net/notes/yorha/)_.
+_Complementary blog post can be found [here](https://www.lcook.net/notes/yorha/)_.
 
 ### Overview
 
