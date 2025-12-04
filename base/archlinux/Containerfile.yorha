@@ -100,7 +100,7 @@ RUN IMAGE=$(echo $IMAGE | sed "s|-base||") DATE=$(date +%Y%m%d.%H%M) \
         echo "ANSI_COLOR=\"0;38;2;100;44;254;48;2;255;255;255\""; \
         echo "IMAGE=$IMAGE"; \
     } > /usr/lib/os-release \
-    && ln -sf /usr/lib/os-release /etc/os-release
+    && ln -sf ../usr/lib/os-release /etc/os-release
 
 RUN sed -i "s|^## distro =.*|distro = \"arch\"|" /etc/containers/toolbox.conf
 

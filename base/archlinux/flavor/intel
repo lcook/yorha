@@ -12,6 +12,6 @@ RUN IMAGE="$IMAGE-intel" DATE=$(date +%Y%m%d.%H%M) \
         -e "s|^VERSION=.*|VERSION=$DATE|" \
         -e "s|^IMAGE=.*|IMAGE=$IMAGE|" \
         /usr/lib/os-release \
-        && ln -sf /usr/lib/os-release /etc/os-release
+        && ln -sf ../usr/lib/os-release /etc/os-release
 
 RUN sed -i "s|DEFAULT_FLAVOR:-|DEFAULT_FLAVOR:-intel|" /usr/libexec/yorha-config
