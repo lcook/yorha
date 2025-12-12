@@ -22,7 +22,8 @@ FROM $IMAGE:latest
 COPY --from=builder /tmp/*/*.zst /tmp
 RUN for _pkg in /tmp/*.zst; do pacman --noconfirm -U $_pkg && rm -f $_pkg; done
 
-RUN pacman --noconfirm -S ly && systemctl enable ly.service
+RUN pacman --noconfirm -S ly && systemctl disable getty@tty2.service \
+    && systemctl enable ly@tty2.service
 
 RUN pacman --noconfirm -S flatpak && flatpak remote-add --if-not-exists flathub \
     https://dl.flathub.org/repo/flathub.flatpakrepo
