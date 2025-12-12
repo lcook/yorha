@@ -14,6 +14,13 @@ RUN { \
 	echo "nvidia-drm.fbdev=1"; \
     } >> /usr/share/yorha/.karg
 
+RUN { \
+  echo "NVD_BACKEND=direct"; \
+  echo "LIBVA_DRIVER_NAME=nvidia"; \
+  echo "__GLX_VENDOR_LIBRARY_NAME=nvidia"; \
+  echo "ELECTRON_OZONE_PLATFORM_HINT=auto"; \
+    } >> /etc/environment
+
 ARG IMAGE
 RUN IMAGE="$IMAGE-nvidia" DATE=$(date +%Y%m%d.%H%M) \
     && sed -i \
@@ -21,6 +28,6 @@ RUN IMAGE="$IMAGE-nvidia" DATE=$(date +%Y%m%d.%H%M) \
         -e "s|^VERSION=.*|VERSION=$DATE|" \
         -e "s|^IMAGE=.*|IMAGE=$IMAGE|" \
         /usr/lib/os-release \
-        && ln -sf ../usr/lib/os-release /etc/os-release
+    && ln -sf ../usr/lib/os-release /etc/os-release
 
 RUN sed -i "s|DEFAULT_FLAVOR:-|DEFAULT_FLAVOR:-nvidia|" /usr/libexec/yorha-config
