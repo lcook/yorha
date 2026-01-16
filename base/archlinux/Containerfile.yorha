@@ -12,10 +12,11 @@ RUN pacman --noconfirm -S \
 RUN useradd -m builder \
     && echo "builder ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/builder
 
-RUN for _pkg in tofi; do \
+RUN sed -i "s| debug| !debug|" /etc/makepkg.conf \
+    && for _pkg in tofi; do \
     git clone https://aur.archlinux.org/$_pkg.git /tmp/$_pkg \
     && chown -R builder:builder /tmp/$_pkg \
-    && sudo -u builder makepkg -D /tmp/$_pkg -sc --noconfirm OPTIONS=-debug; done
+    && sudo -u builder makepkg -D /tmp/$_pkg -sc --noconfirm; done
 
 FROM $IMAGE:latest
 
