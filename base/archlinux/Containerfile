@@ -2,8 +2,6 @@ FROM docker.io/library/archlinux:latest
 
 RUN rm -rf /etc/pacman.d/gnupg && pacman-key --init && pacman-key --populate
 
-RUN sed -i -e "/^NoExtract/d" /etc/pacman.conf && pacman --noconfirm -Syu
-
 RUN pacman --noconfirm -Sy
 
 ARG BASE_OPT_TIMEZONE
