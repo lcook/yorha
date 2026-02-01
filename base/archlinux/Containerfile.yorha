@@ -41,15 +41,10 @@ RUN pacman --noconfirm --needed -S \
 RUN pacman --noconfirm --needed -Syuu \
     # Command-line utilities
     fish \
-    vim \
-    wget \
     sudo \
     inetutils \
     openssh \
-    git \
     less \
-    man-db \
-    man-pages \
     \
     # Audio
     pipewire-alsa \
