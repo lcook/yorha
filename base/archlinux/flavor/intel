@@ -1,7 +1,7 @@
 ARG IMAGE=localhost/yorha/archlinux
 FROM $IMAGE:latest
 
-RUN pacman --noconfirm -Sy \
+RUN pacman --noconfirm --needed -Sy \
     intel-media-driver \
     vulkan-intel
 

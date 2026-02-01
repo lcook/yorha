@@ -3,7 +3,7 @@ FROM $IMAGE:latest
 
 RUN echo "MODULES+=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)" >/etc/mkinitcpio.conf.d/nvidia.conf
 
-RUN pacman --noconfirm -Sy \
+RUN pacman --noconfirm --needed -Sy \
     nvidia-open-dkms \
     libva-nvidia-driver
 

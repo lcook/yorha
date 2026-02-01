@@ -1,7 +1,7 @@
 ARG IMAGE=localhost/yorha/archlinux-base
 FROM $IMAGE:latest AS builder
 
-RUN pacman --noconfirm -S \
+RUN pacman --noconfirm --needed -S \
     git \
     sudo \
     fakeroot \
@@ -21,15 +21,15 @@ RUN sed -i "s| debug| !debug|" /etc/makepkg.conf \
 FROM $IMAGE:latest
 
 COPY --from=builder /tmp/*/*.zst /tmp
-RUN for _pkg in /tmp/*.zst; do pacman --noconfirm -U $_pkg && rm -f $_pkg; done
+RUN for _pkg in /tmp/*.zst; do pacman --noconfirm --needed -U $_pkg && rm -f $_pkg; done
 
-RUN pacman --noconfirm -S ly && systemctl disable getty@tty2.service \
+RUN pacman --noconfirm --needed -S ly && systemctl disable getty@tty2.service \
     && systemctl enable ly@tty2.service
 
-RUN pacman --noconfirm -S flatpak && flatpak remote-add --if-not-exists flathub \
+RUN pacman --noconfirm --needed -S flatpak && flatpak remote-add --if-not-exists flathub \
     https://dl.flathub.org/repo/flathub.flatpakrepo
 
-RUN pacman --noconfirm -S \
+RUN pacman --noconfirm --needed -S \
     # Fonts
     otf-font-awesome \
     ttf-nerd-fonts-symbols \
@@ -38,7 +38,7 @@ RUN pacman --noconfirm -S \
     noto-fonts-cjk \
     noto-fonts-emoji
 
-RUN pacman --noconfirm -Syuu \
+RUN pacman --noconfirm --needed -Syuu \
     # Command-line utilities
     fish \
     vim \
