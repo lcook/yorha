@@ -57,7 +57,7 @@ RUN pacman --noconfirm --needed -Syuu \
     \
     # Desktop enviroment
     xdg-desktop-portal-gtk \
-    xdg-desktop-portal-wlr \
+    xdg-desktop-portal-hyprland \
     nwg-displays \
     hyprland \
     hyprlock \
