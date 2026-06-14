@@ -40,7 +40,7 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
               docker.io/library/archlinux:base-devel bash -c \
-                "pacman -Syu --noconfirm go && make build-thin"
+                "pacman -Syu --noconfirm go git && make build-thin"
 
       - uses: actions/setup-go@v6
         with:
