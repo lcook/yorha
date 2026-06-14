@@ -1,0 +1,3 @@
+ LABEL=SYS_ROOT /         auto rw,relatime 0 1
+ LABEL=SYS_VAR  /var      auto rw,relatime 0 2
+ LABEL=SYS_BOOT /boot/efi vfat rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro 0 2

@@ -1,0 +1,7 @@
+quiet
+loglevel=3
+systemd.show_status=auto
+rd.udev.log_level=3
+modprobe.blacklist=iTCO_wdt,sp5100_tco
+nmi_watchdog=0
+nowatchdog

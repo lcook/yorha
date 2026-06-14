@@ -1,0 +1,2 @@
+Cmnd_Alias YORHA = /usr/bin/yorha "",/usr/bin/yorha build *,/usr/bin/yorha update *,/usr/bin/yorha switch *
+%wheel ALL=NOPASSWD: YORHA

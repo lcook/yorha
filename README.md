@@ -1,116 +1,124 @@
 <p align="center">
-  <b>YoRHa</b> (寄葉) "passing leaf" —  Immutable Arch Linux distribution with OSTree</center>
+  <b>YoRHa</b> - Immutable Arch Linux distribution built with OSTree</center>
   <br>
   <br>
-  <a href="https://github.com/lcook/yorha/actions/workflows/publish-images.yaml">
-    <img src="https://github.com/lcook/yorha/actions/workflows/publish-images.yaml/badge.svg"></img>
+  <a href="https://github.com/lcook/yorha/actions/workflows/build.yaml">
+    <img src="https://github.com/lcook/yorha/actions/workflows/build.yaml/badge.svg"></img>
   </a>
 </p>
+
+![](.resources/screenshot.png)
 
 - [Overview](#overview)
 - [Design philosophy](#design-philosophy)
 - [Installation](#installation)
-- [Development](#development)
-    - [Flavors](#flavors)
-- [Tentative goals](#tentative-goals)
+- [Maintenance](#maintenance)
+- [Housekeeping](#housekeeping)
+- [Images](#images)
 - [Credits](#credits)
 - [License](#license)
 
-![](.resources/screenshot_1.png)
-![](.resources/screenshot_2.png)
-
-_Complementary blog post can be found [here](https://www.lcook.net/notes/yorha/)_.
-
 ### Overview
 
-This repository provides a toolkit for building and deploying OSTree-based Linux distributions. While Arch Linux is the default base,
-it is possible to use alternative distributions like Debian, Fedora, Alpine and friends simply by adding them under [base](base)
-(see [archlinux](base/archlinux) for reference). However, please note that effort currently focuses exclusively on Arch Linux.
+This repository provides a toolkit for building and deploying OSTree-based Linux
+distributions. While Arch Linux is the preferred base, it is possible to use
+alternative distributions like Debian, Fedora, Alpine and friends simply by adding
+them as another image under [config](config). However, _please note that effort
+currently focuses exclusively on Arch Linux_.
 
 ### Design philosophy
 
-YoRHa is built around the concept of an atomic desktop: where the core system is kept minimal, immutable, and read-only. This approach enables
-reproducible deployments and versioned rollbacks, making upgrades and recoveries simple and dependable through OSTree. The root filesystem is
-created via containers, ensuring a clean and consistent environment each time, and each deployment performs a factory reset of the system
-configuration (unless overridden).
+YoRHa is built around the concept of an atomic desktop: where the core system is
+kept minimal, immutable, and read-only. This approach enables reproducible deployments
+and versioned rollbacks, making upgrades and recoveries simple and dependable through
+OSTree. The root filesystem is created via container images, ensuring a clean and
+consistent environment each time, and each deployment performs a factory reset of
+the system configuration (unless overridden).
 
-Graphical applications are installed via Flatpak whenever possible providing isolation and easy updates. Developers and power users can utilise `toolbox`
-containers for command-line tools and development environments, keeping the base system uncluttered. This separation means your system, graphical, and
-command-line workloads each operate in their own dedicated space.
+Graphical applications are installed via Flatpak whenever possible providing isolation
+and easy updates. Developers and power users can utilise `toolbox` containers for
+command-line tools and development environments, keeping the base system uncluttered.
+This separation means your system, graphical, and command-line workloads each operate
+in their own dedicated space.
 
 At a higher level, the end system is comprised of:
 
-* [OSTree](https://ostreedev.github.io/ostree): Atomic updates and rollback mechanism with a read-only, immutable root filesystem
+* [OSTree](https://ostreedev.github.io/ostree): Atomic updates and rollback mechanism
+  with a read-only, immutable root filesystem
 * [Toolbox](https://containertoolbx.org): Disposable development containers
 * [Flatpak](https://flatpak.org): Sandboxed application deployment for GUI software
 * [Podman](https://podman.io): Containerised system image creation for OSTree deployments
 * Arch Linux (by the way).
 
-Upgrades are performed by building a new container image with `podman` or by using the provided GitHub container repository. If you hit a
-problem, you can easily roll back to the previously working deployment.
+Upgrades are performed by pulling the newest container image built either locally
+or provided by the GitHub container registry. If you hit a problem, you can easily
+roll back to the previously working OSTree deployment.
 
 > [!NOTE]
-> Configuration files from my [dotfiles](https://github.com/lcook/dots) repository are copied to `/etc/skel` during image creation, so every
-> new user account is automatically set up with a complete and consistent environment. You can of course swap these files with your own
-> configurations if preferred.
+> Configuration files from my [dotfiles](https://github.com/lcook/dots) repository are 
+> copied to `/etc/skel` during image creation, so every new user account is automatically
+> set up with a complete and consistent environment. You can of course swap these
+> files with your own configurations if preferred.
 
 ### Installation
 
-It is recommended to use a live environment such as the [Arch Linux ISO](https://archlinux.org/download/) to bootstrap YoRHa to a drive. The following instructions
-are based on this setup; if you use a different system, the process or results may differ.
+A live environment such as the [Arch Linux ISO](https://archlinux.org/download/)
+is recommended for bootstrapping YoRHa to a target disk. The following instructions
+assume such an environment.
 
-1. **Install the necessary dependencies** needed to bootstrap a system:
-
-```console
-# pacman --noconfirm -Sy git ostree podman
-```
-
-2. **Clone this repository** on a live system:
+1. **Install the necessary dependencies and enable podman service** needed to bootstrap your system:
 
 ```console
-# git clone --recursive https://github.com/lcook/yorha /tmp/yorha
+# pacman --noconfirm -Sy git ostree podman fuse-overlayfs && systemctl start podman
 ```
 
-3. **Prepare the disk for bootstrapping** by running the below command. You will be prompted choose the target disk, which will
-    then be automatically partitioned and formatted with XFS as the default filesystem. The setup creates three labeled
-    partitions:
-    - `SYS_ROOT`: root filesystem (`/`)
-    - `SYS_VAR`: persistent data (`/var`)
-    - `SYS_BOOT`: EFI boot partition (`/boot/efi`)
+2. **Download and run the installer** from the GitHub releases page:
+
+```console
+# curl -O https://github.com/lcook/yorha/releases/latest/download/yorha-inst && chmod +x yorha-inst
+# ./yorha-inst
+```
+
+After downloading and running the installer binary, you will be guided through an
+interactive command-line installer that simplifies the process of setting up a live
+system. The installation occurs in three stages: first, disk partitioning and formatting;
+second, OSTree repository setup and imaging; and finally, OSTree deployment and bootloader
+installation.
+
+In stage two, you will be asked to enter a container image for deployment. You can
+find available images [here](#images), and you also have the option to provide your own.
+After all stages have completed you can reboot your system. You should be greeted with
+[ly](https://codeberg.org/fairyglade/ly) as the login manager.
 
 > [!NOTE]
-> Make sure to source the script to setup the environment variables correctly otherwise the bootstrap process will fail.
+> The default `root` account password is set to `ostree` - please change this after logging in!
 
-```console
-# . ./yorha live prep-disk # You MUST source the script!
-# ./yorha live init
-```
+### Maintenance
 
-4. **Deploy OCI containter image with OSTree** with one of two methods below:
+Container images are built automatically by [GitHub Actions](.github/workflows/build.yaml)
+and can be found [here](https://github.com/lcook?tab=packages&repo_name=yorha) following
+each commit that passes the build pipeline, in addition to weekly scheduled builds
+to prevent stale images accruing. With that in mind, you can either use the provided
+images or build your own (see below) to create new OSTree deployments.
 
 <details open>
 
 <summary>Pre-built GitHub Container Registry images (recommended for consumers)</summary>
 
-Container images are built automatically by [GitHub Actions](.github/workflows/publish-images.yaml) and can be found
-[here](https://github.com/lcook?tab=packages&repo_name=yorha) following each commit that passes
-the build pipeline, in addition to weekly scheduled builds to prevent stale images accruing. You may replace <-flavor>
-with the images detailed in [Flavors](#flavors).
+Updating to the latest image can be done by running:
 
 ```console
-# ./yorha live install ghcr.io/lcook/yorha/archlinux<-flavor>
-# systemctl reboot
+# yorha update
 ```
 
-After rebooting, you can upgrade your system whenever new container images are available in the container registry.
-To check, run the following:
+It should automatically detect the booted OSTree environment and the corresponding
+container image removing the need to use the `-i` flag. However, if you wish to
+switch the image, you can do so by passing the `-i` flag followed by the container
+image URL (for example, `ghcr.io/lcook/yorha/custom-image`). This will initiate a
+new deployment.
 
-```console
-$ sudo yorha upgrade remote
-```
-
-Viola - you are now up and running! This is the more "hands-off" approach towards configuring the system, meanwhile
-the below grants the flexibility to do as you please with custom images.
+This method of updating the system is the more hands-off approach, while the method
+below allows for the flexibility to use custom images as you wish.
 
 </details>
 
@@ -118,77 +126,77 @@ the below grants the flexibility to do as you please with custom images.
 
 <summary>Locally built images (recommended for development and custom images)</summary>
 
-Alternatively, custom local images can be built and adapted to your liking. This can be helpful for situations
-when you want to make local modifications to the deployed image not available in the provided image in the GitHub
-Container Registry.
+You can also build and customize your own container images according to your preferences.
+This approach is useful when you need to make local modifications to the deployed
+image that are not available in the provided image in the GitHub Container Registry.
+
+To get started clone the repository, add your custom config into the [config](config)
+directory,  and build the toolkit:
 
 ```console
-# ./yorha compose container-base
-# ./yorha compose container
-# ./yorha compose flavor <flavor> # Optional
-# ./yorha live install
-# systemctl reboot
+# git clone --recursive https://github.com/lcook/yorha && cd yorha
+# make build # Builds binaries with all features enabled and not just a thin client
+# ./yorha build -c config/image-custom.yaml
 ```
 
-This will build both the [base image](base/archlinux/Containerfile) and then atop any custom settings or tweaks
-found [here](base/archlinux/Containerfile.yorha). To make additions after the initial bootstrapping phase,
-please read [Development](#development).
+This will initiate a build by calling the Podman API after preparing the Containerfile
+template as specified in the YAML file. Assuming the container name is `archlinux-custom`
+and no issue occured during the build process, you can deploy the image:
+
+```console
+# ./yorha update -i localhost/archlinux-custom
+```
+
+Any subequent invokations to `yorha update` do not need `-i` as the image name will
+automatically be detected.
 
 </details>
 
 > [!NOTE]
-> The default `root` account password is set to `ostree` - please change this after logging in!
+> Stale container images are automatically cleared up on update to help save on disk space.
 
-### Development
+### Housekeeping
 
-For local development, it is suggested to clone this repository to your machine. By maintaining a local copy at
-`~/dev/yorha` the version will override the system-installed libexec and yorha scripts (located in `/usr/libexec/yorha-*` and `/usr/bin/yorha`).
-
-The fish shell configuration initially copied from `/etc/skel` into your home directory includes a check for the corresponding project directory
-(see [this script](https://github.com/lcook/dots/blob/main/fish/functions/__yorha_env_start.fish)). If the directory exists, it sets `YORHA_BASE_PATH`
-and `YORHA_LIBEXEC_PATH`; if it is absent, the `yorha` script falls back to the defaults defined in [yorha-config](libexec/yorha-config).
-
-To get started, clone both the main repository and the accompanying dotfiles, then execute the helper scripts to apply the chosen theme and establish
-the proper symlinks:
+List available OSTree deployments and their corresponding container image:
 
 ```console
-$ git clone --recursive https://github.com/lcook/yorha ~/dev
-$ git clone https://github.com/lcook/dots ~/dev && cdots
-$ ./0-themer [theme]
-$ ./1-symlinks
+# yorha list
+    IMAGE                                    CHECKSUM     VERSION        CREATED      STATUS
+ 0  ghcr.io/lcook/yorha/archlinux-nvidia     4982b32d08f  20260606.1541  6 days ago   booted
+ 1  ghcr.io/lcook/yorha/archlinux-nvidia     37817ccfade  20260605.2059  6 days ago   rollback
+ 2  ghcr.io/lcook/yorha/archlinux-nvidia     d987ec7898f  20260530.2338  12 days ago
+ 3  ghcr.io/lcook/yorha/archlinux-nvidia     c4a44acf5db  20260528.0629  15 days ago
 ```
 
-When modifying container images, update the files under [base/archlinux](base/archlinux) and rebuild the images by running:
+> [!NOTE]
+> To remove a previous OSTree deployment, first identify its deployment index (in the output above,
+> between 0 and 3, '2' will be used in this example). Then run `ostree admin undeploy 2`
+> to delete that deployment and free up some space. You can repeat this process for as
+> many valid deployments as you want to remove.
+
+Switch the active OSTree deployment:
 
 ```console
-$ sudo yorha compose container-base  # Build the base Arch Linux container image
-$ sudo yorha compose container       # Build the OSTree image with your customisations
-$ sudo yorha compose flavor <flavor> # Optionally build flavor
-$ sudo yorha upgrade local           # Deploy the updated container built image via OSTree
-$ systemctl reboot
+# yorha switch
+    IMAGE                                    CHECKSUM     VERSION        CREATED      STATUS
+ 0  ghcr.io/lcook/yorha/archlinux-nvidia     4982b32d08f  20260606.1541  6 days ago   booted
+ 1  ghcr.io/lcook/yorha/archlinux-nvidia     37817ccfade  20260605.2059  6 days ago   rollback
+ 2  ghcr.io/lcook/yorha/archlinux-nvidia     d987ec7898f  20260530.2338  12 days ago
+ 3  ghcr.io/lcook/yorha/archlinux-nvidia     c4a44acf5db  20260528.0629  15 days ago
+
+* Select deployment index [0-3]:
 ```
 
-#### Flavors
+### Images
 
-Flavors are purpose-specific overlays for the base image that add hardware specific packages, configurations and tweaks during image creation. Flavors live under [base/archlinux/flavor](base/archlinux/flavor/).
+| Image | Description |
+|-------|-------------|
+| [ghcr.io/lcook/yorha/archlinux-base](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-base) | Base YoRHa container image built from Arch Linux |
+| [ghcr.io/lcook/yorha/archlinux-mainline](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-mainline) | Mainline YoRHa container image providing the core desktop and environment |
+| [ghcr.io/lcook/yorha/archlinux-nvidia](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-nvidia) | YoRHa container image with NVIDIA GPU support |
+| [ghcr.io/lcook/yorha/archlinux-intel](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-intel) | YoRHa container image with Intel GPU support |
 
-Some provided images built:
-
-- [ghcr.io/lcook/yorha/archlinux-nvidia](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-nvidia): Adds packages/configurations commonly required for systems using NVIDIA GPUs
-- [ghcr.io/lcook/yorha/archlinux-intel](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-intel): Adds packages/configurations commonly required for systems using Intel integrated graphics.
-
-These optionally can be built locally and deployed with the following:
-
-```console
-$ sudo yorha compose flavor archlinux-nvidia # Syntax for `compose flavor` is [base]-[flavor]
-$ sudo yorha upgrade local # Deploy after build
-```
-
-### Tentative goals
-
-* Refactor the `yorha` buildkit to leverage the [OSTree C API](https://ostreedev.github.io/ostree/reference/) replacing a handful of shell scripts, inspired by projects like `rpm-ostree`
-* Expand support to include additional Linux distributions beyond Arch Linux
-* Migrate to [bootc](https://github.com/bootc-dev/bootc) once [bootupd](https://github.com/coreos/bootupd) is better supported on non-Fedora systems.
+Updates, removals and additions to the latest container images can be found [here](https://github.com/lcook/yorha/releases/latest).
 
 ### Credits
 

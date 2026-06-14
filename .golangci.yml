@@ -1,0 +1,49 @@
+version: "2"
+run:
+  go: "1.26"
+  tests: false
+linters:
+  disable:
+    - errcheck
+    - gosec
+    - godot
+  enable:
+    - lll
+    - bodyclose
+    - dupl
+    - goconst
+    - godot
+    - godox
+    - gosec
+    - goprintffuncname
+    - misspell
+    - nolintlint
+    - prealloc
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - unparam
+    - whitespace
+    - wsl_v5
+  settings:
+    gosec:
+      excludes:
+        - G104
+  exclusions:
+    generated: lax
+    presets:
+      - common-false-positives
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

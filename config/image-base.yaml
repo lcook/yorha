@@ -1,0 +1,60 @@
+image: localhost/archlinux-base
+depends: docker.io/library/archlinux:latest
+comment: Base YoRHa container image built from Arch Linux
+environment:
+  DEFAULT_TIMEZONE: Europe/London
+  DEFAULT_KEYMAP: us
+  DEFAULT_LANGUAGE: en_GB
+  DEFAULT_ROOT_PASSWORD: ostree
+packages:
+  - linux-zen
+  - linux-zen-headers
+  - linux-firmware
+  - amd-ucode
+  - intel-ucode
+  - networkmanager
+  - dosfstools
+  - xfsprogs
+  - grub
+  - mkinitcpio
+  - efibootmgr
+  - ostree
+  - podman
+  - which
+files:
+  - { source: overlay/etc/mkinitcpio.conf.d/ostree.conf, dest: /etc/mkinitcpio.conf.d/ }
+  - { source: overlay/etc/modprobe.d/disable-overlay-redirect-dir.conf, dest: /etc/modprobe.d }
+  - { source: overlay/etc/fstab, dest: /etc }
+services:
+  enable:
+    - NetworkManager
+  mask:
+    - systemd-networkd-wait-online
+template: |
+  FROM {{.Depends}}
+  {{if .Files}}
+  {{- range .Files}}
+  COPY {{.Source}} {{.Dest}}
+  {{- end}}
+  {{end}}
+
+  RUN rm -rf /etc/pacman.d/gnupg && pacman-key --init && pacman-key --populate
+
+  RUN ln -sf /usr/share/zoneinfo/{{index .Environment "DEFAULT_TIMEZONE"}} /etc/localtime
+  RUN echo "KEYMAP={{index .Environment "DEFAULT_KEYMAP"}}" | tee /etc/vconsole.conf
+  RUN echo "LANG={{index .Environment "DEFAULT_LANGUAGE"}}.UTF-8" | tee /etc/locale.conf \
+    && echo "{{index .Environment "DEFAULT_LANGUAGE"}}.UTF-8 UTF-8" | tee /etc/locale.gen \
+    && locale-gen
+
+  {{if .Packages}}
+  RUN pacman --noconfirm -Syuu{{Packages .Packages}}
+  {{end}}
+
+  RUN moduledir=$(find /usr/lib/modules -mindepth 1 -maxdepth 1 -type d) kernel=$(cat ${moduledir}/pkgbase) \
+    && cat /boot/*-ucode.img /boot/initramfs-${kernel}.img >${moduledir}/initramfs.img
+
+  {{ServiceCommands "disable" .Services.Disable}}
+  {{ServiceCommands "enable" .Services.Enable}}
+  {{ServiceCommands "mask" .Services.Mask}}
+
+  RUN echo "root:{{index .Environment "DEFAULT_ROOT_PASSWORD"}}" | chpasswd

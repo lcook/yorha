@@ -1,0 +1,107 @@
+image: localhost/archlinux-mainline
+depends: localhost/archlinux-base:latest
+comment: Mainline YoRHa container image providing the core desktop and environment
+environment:
+  DEFAULT_THEME: yorha # See dots/theme.conf for list of available themes
+packages:
+  - fish
+  - sudo
+  - inetutils
+  - openssh
+  - man-pages
+  - man-db
+  - otf-font-awesome
+  - ttf-nerd-fonts-symbols
+  - ttc-iosevka
+  - noto-fonts
+  - noto-fonts-cjk
+  - noto-fonts-emoji
+  - pipewire-alsa
+  - pipewire-audio
+  - pipewire-pulse
+  - bluez
+  - bluez-utils
+  - ly
+  - xdg-desktop-portal-gtk
+  - xdg-desktop-portal-wlr
+  - nwg-displays
+  - hyprland
+  - hyprlock
+  - hyprpaper
+  - hyprpicker
+  - hyprshot
+  - waybar
+  - mako
+  - ghostty
+  - brightnessctl
+  - flatpak
+  - toolbox
+files:
+  - { source: dots/, dest: /tmp/dots }
+  - { source: overlay/etc/sudoers.d/, dest: /etc/sudoers.d }
+  - { source: yorha, dest: /usr/bin/yorha }
+  - { source: overlay/etc/yorha/, dest: /etc/yorha }
+services:
+  enable:
+    - ly@tty2
+    - getty@tty3
+    - seatd
+    - podman
+  disable:
+   - getty@tty2
+template: |
+  FROM {{.Depends}} AS builder
+  
+  RUN pacman --noconfirm --needed -S \
+    git \
+    sudo \
+    fakeroot \
+    debugedit \
+    pkgconf \
+    gcc
+
+  RUN useradd -m builder \
+    && echo "builder ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/builder
+
+  RUN sed -i "s| debug| !debug|" /etc/makepkg.conf \
+    && for _pkg in tofi; do \
+    git clone https://aur.archlinux.org/$_pkg.git /tmp/$_pkg \
+    && chown -R builder:builder /tmp/$_pkg \
+    && sudo -u builder makepkg -D /tmp/$_pkg -sc --noconfirm; done
+
+  FROM {{.Depends}}
+  {{if .Files}}
+  {{- range .Files}}
+  COPY {{.Source}} {{.Dest}}
+  {{- end}}
+  {{end}}
+  COPY --from=builder /tmp/*/*.zst /tmp
+  RUN for _pkg in /tmp/*.zst; do pacman --noconfirm --needed -U $_pkg && rm -f $_pkg; done
+  
+  {{- if .Packages }}
+  RUN pacman --noconfirm -Syuu{{Packages .Packages}}
+  {{- end }}
+
+  {{ServiceCommands "disable" .Services.Disable}}
+  {{ServiceCommands "enable" .Services.Enable}}
+  {{ServiceCommands "mask" .Services.Mask}}
+
+  RUN { \
+        echo 'NAME="YoRHa Linux"'; \
+        echo "ID=yorha"; \
+        echo "ID_LIKE=arch"; \
+        echo "PRETTY_NAME=\"YoRHa Linux {{Date.Format "20060102.1504"}}\""; \
+        echo "VERSION={{Date.Format "20060102.1504"}}"; \
+        echo "LOGO=yorha"; \
+        echo "ANSI_COLOR=\"0;38;2;100;44;254;48;2;255;255;255\""; \
+        echo "IMAGE={{.Image}}"; \
+    } > /usr/lib/os-release \
+    && ln -sf ../usr/lib/os-release /etc/os-release
+
+  RUN sed -i "s|^## distro =.*|distro = \"arch\"|" /etc/containers/toolbox.conf
+
+  RUN cd /tmp/dots \
+    && python themer/themer.py --config theme.conf --theme {{index .Environment "DEFAULT_THEME"}} \
+    && mkdir -p /etc/skel/.config \
+    && mv {fish,ghostty,hypr,mako,tofi,waybar} /etc/skel/.config \
+    && rm -rf /tmp/dots

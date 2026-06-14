@@ -1,0 +1,160 @@
+name: Build and deploy images to ghcr.io
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**'
+      - '.gitmodules'
+      - 'cmd/**'
+      - 'config/**'
+      - 'dots/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'internal/**'
+      - 'overlay/**'
+  schedule:
+   - cron: '0 19 * * FRI'
+
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_PATH: ghcr.io/${{ github.repository }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-toolkit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build toolkit in guest container (Arch Linux)
+        run: |
+          podman run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+              docker.io/library/archlinux:base-devel bash -c \
+                "pacman -Syu --noconfirm go && make build-thin"
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26
+
+      - name: Build toolkit on host system (Ubuntu)
+        run: |
+          mv yorha yorha.arch
+          sudo apt install -y libgpgme-dev \
+            && make PROGS=yorha build
+          mv yorha yorha.ubuntu
+
+      - name: Upload toolkit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: yorha-toolkit
+          path: |
+            yorha.arch
+            yorha.ubuntu
+            yorha-inst
+
+  build-images:
+    runs-on: ubuntu-latest
+    needs: build-toolkit
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Download toolkit
+        uses: actions/download-artifact@v4
+        with:
+          name: yorha-toolkit
+
+      - name: Authenticate with container registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login --username ${{ github.actor }} --password-stdin $REGISTRY
+
+      - name: Capture old package versions
+        run: |
+          for cfg in base mainline intel nvidia; do
+            if podman pull $REGISTRY_PATH/archlinux-$cfg 2>/dev/null; then
+              podman run --rm $REGISTRY_PATH/archlinux-$cfg pacman -Q > /tmp/archlinux-${cfg}_old.list
+              podman image rm -f $REGISTRY_PATH/archlinux-$cfg
+            else
+              touch /tmp/archlinux-${cfg}_old.list
+            fi
+          done
+
+      - name: Pull base dependency container image
+        run: 'podman pull $(sed -n "s|depends: \(.*\)|\1|p" config/image-base.yaml)'
+
+      - name: Build and publish container images
+        run: |
+          sed -i "s|localhost|$REGISTRY_PATH|" config/*.yaml
+          sed -i "s|source: yorha|source: yorha.arch|" config/image-mainline.yaml
+
+          podman system service --time=0 &
+
+          chmod +x ./yorha.ubuntu ./yorha.arch
+          for cfg in base mainline intel nvidia; do
+            ./yorha.ubuntu build -c config/image-$cfg.yaml && podman push $REGISTRY_PATH/archlinux-$cfg
+            podman run --rm $REGISTRY_PATH/archlinux-$cfg pacman -Q > /tmp/archlinux-${cfg}_new.list
+          done
+
+      - name: Upload package lists
+        uses: actions/upload-artifact@v4
+        with:
+            name: archlinux-package-lists
+            path: /tmp/archlinux-*
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build-images
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download package lists
+        uses: actions/download-artifact@v4
+        with:
+          name: archlinux-package-lists
+          path: lists
+
+      - name: Download toolkit
+        uses: actions/download-artifact@v4
+        with:
+          name: yorha-toolkit
+
+      - name: Generate release body
+        run: |
+          > release-body.md
+          for cfg in base mainline intel nvidia; do
+            awk -f .github/workflows/gen_changes.awk -v image=archlinux-$cfg lists/archlinux-${cfg}_old.list \
+              lists/archlinux-${cfg}_new.list >> release-body.md
+          done
+
+      - id: meta
+        run: |
+          mv yorha.arch yorha
+          echo "timestamp=$(TZ=Europe/London date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
+          echo "sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Release yorha toolkit (Arch Linux)
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: build-${{ steps.meta.outputs.sha }}-${{ steps.meta.outputs.timestamp }}
+          name: YoRHa build ${{ steps.meta.outputs.timestamp }} (${{ steps.meta.outputs.sha }})
+          files: |
+            yorha
+            yorha-inst
+          body_path: release-body.md

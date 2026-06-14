@@ -1,0 +1,35 @@
+image: localhost/archlinux-nvidia
+depends: localhost/archlinux-mainline:latest
+comment: YoRHa container image with NVIDIA support
+packages:
+  - nvidia-open-dkms
+  - libva-nvidia-driver
+files:
+  - { source: overlay/etc/mkinitcpio.conf.d/nvidia.conf, dest: /etc/mkinitcpio.conf.d/ }
+template: |
+  FROM {{.Depends}}
+
+  RUN { \
+    echo "modprobe.blacklist=nouveau"; \
+    echo "rd.driver.blacklist=nouveau"; \
+    echo "nvidia-drm.modeset=1"; \
+    echo "nvidia-drm.fbdev=1"; \
+  } >> /etc/yorha/kargs
+
+  RUN { \
+    echo "NVD_BACKEND=direct"; \
+    echo "LIBVA_DRIVER_NAME=nvidia"; \
+    echo "__GLX_VENDOR_LIBRARY_NAME=nvidia"; \
+    echo "ELECTRON_OZONE_PLATFORM_HINT=auto"; \
+  } >> /etc/environment
+
+  RUN sed -i \
+      -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"YoRHa Linux (nvidia) {{Date.Format "20060102.1504"}}\"|" \
+      -e "s|^VERSION=.*|VERSION={{Date.Format "20060102.1504"}}|" \
+      -e "s|^IMAGE=.*|IMAGE={{.Image}}|" \
+      /usr/lib/os-release \
+    && ln -sf ../usr/lib/os-release /etc/os-release
+
+  {{if .Packages}}
+  RUN pacman --noconfirm -Syuu{{- Packages .Packages -}}
+  {{end}}

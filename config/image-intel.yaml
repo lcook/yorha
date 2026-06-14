@@ -1,0 +1,19 @@
+image: localhost/archlinux-intel
+depends: localhost/archlinux-mainline:latest
+comment: YoRHa container image with Intel support
+packages:
+  - intel-media-driver
+  - vulkan-intel
+template: |
+  FROM {{.Depends}}
+
+  RUN sed -i \
+      -e "s|^PRETTY_NAME=.*|PRETTY_NAME=\"YoRHa Linux (intel) {{Date.Format "20060102.1504"}}\"|" \
+      -e "s|^VERSION=.*|VERSION={{Date.Format "20060102.1504"}}|" \
+      -e "s|^IMAGE=.*|IMAGE={{.Image}}|" \
+      /usr/lib/os-release \
+    && ln -sf ../usr/lib/os-release /etc/os-release
+
+  {{if .Packages}}
+  RUN pacman --noconfirm -Syuu{{- Packages .Packages -}}
+  {{end}}
