@@ -75,7 +75,7 @@ assume such an environment.
 2. **Download and run the installer** from the GitHub releases page:
 
 ```console
-# curl -O https://github.com/lcook/yorha/releases/latest/download/yorha-inst && chmod +x yorha-inst
+# curl -OL https://github.com/lcook/yorha/releases/latest/download/yorha-inst && chmod +x yorha-inst
 # ./yorha-inst
 ```
 
