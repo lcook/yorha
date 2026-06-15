@@ -1,30 +1,20 @@
 .DEFAULT_GOAL := help
 .DELETE_ON_ERROR:
 .ONESHELL:
-.PHONY: build build-thin clean lint run help
+.PHONY: build build-thin clean lint help
+
 VER = 0.1.0
 HASH != git rev-parse --short HEAD 2>/dev/null
-ifdef HASH
-PROG_VERSION := $(VER)-$(HASH)
-else
-PROG_VERSION = $(VER)
-endif
 PROGS = yorha yorha-inst
+GO_MODULE = github.com/lcook/yorha
 
-GH_ACCOUNT = lcook
-GH_PROJECT = yorha
-
-GO_MODULE = github.com/$(GH_ACCOUNT)/$(GH_PROJECT)
-GO_FLAGS = -v -ldflags "-s -w -X $(GO_MODULE)/internal/version.Build=$(PROG_VERSION)"
-
-build:
+build: SUFFIX = -full
+build-thin: SUFFIX = -thin
+build build-thin:
 	for prog in $(PROGS); do
-		go build $(GO_FLAGS) -tags exclude_graphdriver_btrfs -o $$prog cmd/$$prog/main.go && strip -s $$prog
-	done
-
-build-thin:
-	for prog in $(PROGS); do
-		go build $(GO_FLAGS) -tags exclude_graphdriver_btrfs,thin -o $$prog cmd/$$prog/main.go && strip -s $$prog
+		go build -v -ldflags "-s -w -X $(GO_MODULE)/internal/version.Build=$(VER)-$(HASH)$(SUFFIX)" \
+			-tags exclude_graphdriver_btrfs$(if $(filter build-thin,$@),$(comma)thin) \
+			-o $$prog cmd/$$prog/main.go && strip -s $$prog
 	done
 
 clean:
