@@ -54,7 +54,7 @@ jobs:
           mv yorha yorha.ubuntu
 
       - name: Upload toolkit artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: yorha-toolkit
           path: |
@@ -75,7 +75,7 @@ jobs:
           submodules: recursive
 
       - name: Download toolkit
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: yorha-toolkit
 
@@ -110,7 +110,7 @@ jobs:
           done
 
       - name: Upload package lists
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
             name: archlinux-package-lists
             path: /tmp/archlinux-*
@@ -125,13 +125,13 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download package lists
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: archlinux-package-lists
           path: lists
 
       - name: Download toolkit
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: yorha-toolkit
 
