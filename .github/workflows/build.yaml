@@ -150,7 +150,7 @@ jobs:
           echo "sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Release yorha toolkit (Arch Linux)
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: build-${{ steps.meta.outputs.sha }}-${{ steps.meta.outputs.timestamp }}
           name: YoRHa build ${{ steps.meta.outputs.timestamp }} (${{ steps.meta.outputs.sha }})
