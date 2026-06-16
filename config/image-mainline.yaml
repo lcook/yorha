@@ -23,7 +23,7 @@ packages:
   - bluez-utils
   - ly
   - xdg-desktop-portal-gtk
-  - xdg-desktop-portal-wlr
+  - xdg-desktop-portal-hyprland
   - nwg-displays
   - hyprland
   - hyprlock
