@@ -139,6 +139,11 @@ directory,  and build the toolkit:
 # ./yorha build -c config/image-custom.yaml
 ```
 
+> [!MOTE]
+> When building containers as an unprivileged user you may encounter an error
+> saying that the podman socket does not exist. Start the service with
+> `systemctl start --user podman.socket` and try again.
+
 This will initiate a build by calling the Podman API after preparing the Containerfile
 template as specified in the YAML file. Assuming the container name is `archlinux-custom`
 and no issue occured during the build process, you can deploy the image:

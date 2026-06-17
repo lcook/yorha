@@ -7,6 +7,8 @@ package cmd
 // Copyright (c) Lewis Cook <hi@lcook.net>
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 
 	"github.com/lcook/yorha/internal/config"
@@ -19,6 +21,11 @@ var (
 	buildCmd = &cobra.Command{
 		Use:   "build",
 		Short: "Build container from configuration file",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			if os.Getuid() == 0 {
+				rootfull = true
+			}
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			socket := podman.RootlessContext
 			if rootfull {
@@ -54,8 +61,7 @@ var (
 func init() {
 	buildCmd.Flags().
 		StringVarP(&configfile, "config", "c", "config-base.yaml", "Path to configuration file")
-	buildCmd.Flags().
-		BoolVarP(&rootfull, "rootfull", "r", false, "Build in rootfull context")
+	buildCmd.MarkFlagRequired("config")
 
 	rootCmd.AddCommand(buildCmd)
 }
