@@ -25,6 +25,7 @@ packages:
   - xdg-desktop-portal-gtk
   - xdg-desktop-portal-hyprland
   - nwg-displays
+  - zram-generator
   - hyprland
   - hyprlock
   - hyprpaper
@@ -39,6 +40,7 @@ packages:
 files:
   - { source: dots/, dest: /tmp/dots }
   - { source: overlay/etc/sudoers.d/, dest: /etc/sudoers.d }
+  - { source: overlay/etc/systemd/, dest: /etc/systemd }
   - { source: yorha, dest: /usr/bin/yorha }
   - { source: overlay/etc/yorha/, dest: /etc/yorha }
 services:
