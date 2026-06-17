@@ -80,6 +80,11 @@ func CreateRootFilesystem(opt *Options) {
 		}
 	}
 
+	var local bool
+	if strings.Split(image, "/")[0] == "localhost" {
+		local = true
+	}
+
 	if !podman.HasLocalImage(image) {
 		opt.Log.Infof("Container image %s not found in local storage", image)
 
@@ -90,7 +95,7 @@ func CreateRootFilesystem(opt *Options) {
 				err.Error(),
 			)
 		}
-	} else if Environment() && !opt.ForceUpdate {
+	} else if !local && !opt.ForceUpdate {
 		opt.Log.Infof("Comparing local and remote digests for image %s", image)
 
 		inspect, err := podman.GetImage(image)
