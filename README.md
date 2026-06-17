@@ -139,7 +139,7 @@ directory,  and build the toolkit:
 # ./yorha build -c config/image-custom.yaml
 ```
 
-> [!MOTE]
+> [!NOTE]
 > When building containers as an unprivileged user you may encounter an error
 > saying that the podman socket does not exist. Start the service with
 > `systemctl start --user podman.socket` and try again.
