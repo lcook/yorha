@@ -8,7 +8,7 @@ require (
 	go.podman.io/buildah v1.44.0
 	go.podman.io/image/v5 v5.40.0
 	go.podman.io/podman/v6 v6.0.1
-	golang.org/x/sys v0.46.0
+	golang.org/x/sys v0.47.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
