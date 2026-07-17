@@ -43,7 +43,7 @@ jobs:
               docker.io/library/archlinux:base-devel bash -c \
                 "pacman -Syu --noconfirm go git && make build-thin"
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: 1.26
 
