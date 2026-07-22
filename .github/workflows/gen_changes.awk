@@ -30,7 +30,15 @@ END {
         exit
     }
 
-    printf "##### *Package changes (%d updated, %d added, %d removed)*\n", length(updates), length(additions), length(removals)
+    changes = ""
+    if (length(updates))
+      changes = changes sprintf("%d updated", length(updates))
+    if (length(additions))
+      changes = changes (changes ? ", " : "") sprintf("%d added", length(additions))
+    if (length(removals))
+      changes = changes (changes ? ", " : "") sprintf("%d removed", length(removals))
+
+    printf "##### *Package changes (%s)*\n", changes
     print "<details>"
     print ""
     print "| Change | Package | Old Version | New Version |"
