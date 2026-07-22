@@ -5,9 +5,9 @@ go 1.26.1
 require (
 	github.com/fatih/color v1.19.0
 	github.com/spf13/cobra v1.10.2
-	go.podman.io/buildah v1.44.0
+	go.podman.io/buildah v1.44.1
 	go.podman.io/image/v5 v5.40.0
-	go.podman.io/podman/v6 v6.0.1
+	go.podman.io/podman/v6 v6.0.2
 	golang.org/x/sys v0.47.0
 	gopkg.in/yaml.v3 v3.0.1
 )
