@@ -69,7 +69,7 @@ assume such an environment.
 1. **Install the necessary dependencies and enable podman service** needed to bootstrap your system:
 
 ```console
-# pacman --noconfirm -Sy git ostree podman fuse-overlayfs && systemctl start podman
+# pacman --noconfirm -Sy ostree podman fuse-overlayfs && systemctl start podman
 ```
 
 2. **Download and run the installer** from the GitHub releases page:
