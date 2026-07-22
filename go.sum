@@ -296,6 +296,8 @@ go.podman.io/podman/v6 v6.0.0-rc1 h1:bro4BcdBPfSTqE2Fpp8wJGegRvtmeQjqyF8X3alJ6kM
 go.podman.io/podman/v6 v6.0.0-rc1/go.mod h1:es7eaYpccsEoNSPERoNs3RIgluP5s+jd79FVp8TXDQ4=
 go.podman.io/podman/v6 v6.0.1 h1:1gRazPTTucrHcUxIhsbTtvkGoHrvVwYR3lGTdGRoB88=
 go.podman.io/podman/v6 v6.0.1/go.mod h1:NJijueCGdrNUICU2bNUFcf/l74mr0cdKG5fHJZfE0SU=
+go.podman.io/podman/v6 v6.0.2 h1:T7p1IJytTb1JbWCMrNnt17O4+d2qMk8Wyw7Pezihr44=
+go.podman.io/podman/v6 v6.0.2/go.mod h1:+WXAeC8vD6yCu7loCL20vDY4A3gWb6FN8vINPEQSo2Y=
 go.podman.io/storage v1.63.0 h1:bj/pAWFhChbuBmejzno0iQLhU7FevGVXepRXm5pFGeA=
 go.podman.io/storage v1.63.0/go.mod h1:z4Z9K+7GhKjWL/Y1O17+4f8a1KGijVeC9hr3tymhSOs=
 go.yaml.in/yaml/v2 v2.4.4 h1:tuyd0P+2Ont/d6e2rl3be67goVK4R6deVxCUX5vyPaQ=
