@@ -92,8 +92,6 @@ template: |
         echo 'NAME="YoRHa Linux"'; \
         echo "ID=yorha"; \
         echo "ID_LIKE=arch"; \
-        echo "PRETTY_NAME=\"YoRHa Linux {{Date.Format "20060102.1504"}}\""; \
-        echo "VERSION={{Date.Format "20060102.1504"}}"; \
         echo "LOGO=yorha"; \
         echo "ANSI_COLOR=\"0;38;2;100;44;254;48;2;255;255;255\""; \
         echo "IMAGE={{.Image}}"; \
