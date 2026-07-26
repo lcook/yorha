@@ -92,8 +92,11 @@ template: |
         echo 'NAME="YoRHa Linux"'; \
         echo "ID=yorha"; \
         echo "ID_LIKE=arch"; \
-        echo "LOGO=yorha"; \
+        echo "VERSION={{Date.Format "20060102.1504"}}"; \
         echo "ANSI_COLOR=\"0;38;2;100;44;254;48;2;255;255;255\""; \
+        echo "HOME_URL=\"https://github.com/lcook/yorha\""; \
+        echo "PRETTY_NAME=\"YoRHa Linux (mainline) {{Date.Format "20060102.1504"}}\""; \
+        echo "LOGO=yorha"; \
         echo "IMAGE={{.Image}}"; \
     } > /usr/lib/os-release \
     && ln -sf ../usr/lib/os-release /etc/os-release
