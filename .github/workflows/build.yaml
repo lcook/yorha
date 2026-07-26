@@ -69,6 +69,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      yorha_build: ${{ steps.meta.outputs.yorha_build }}
 
     steps:
       - uses: actions/checkout@v7
@@ -96,6 +98,10 @@ jobs:
 
       - name: Pull base dependency container image
         run: 'podman pull $(sed -n "s|depends: \(.*\)|\1|p" config/image-base.yaml)'
+
+      - id: meta
+        name: Set YORHA_BUILD
+        run: echo "yorha_build=$(TZ=Europe/London date +'%Y%m%d.%H%M')-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Build and publish container images
         run: |
@@ -143,18 +149,13 @@ jobs:
             awk -f .github/workflows/gen_changes.awk -v image=archlinux-$cfg lists/archlinux-${cfg}_old.list \
               lists/archlinux-${cfg}_new.list >> release-body.md
           done
-
-      - id: meta
-        run: |
           mv yorha.arch yorha
-          echo "timestamp=$(TZ=Europe/London date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
-          echo "sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Release yorha toolkit (Arch Linux)
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: build-${{ steps.meta.outputs.sha }}-${{ steps.meta.outputs.timestamp }}
-          name: YoRHa build ${{ steps.meta.outputs.timestamp }} (${{ steps.meta.outputs.sha }})
+          tag_name: build-${{ needs.build-images.outputs.yorha_build }}
+          name: YoRHa build ${{ needs.build-images.outputs.yorha_build }}
           files: |
             yorha
             yorha-inst
