@@ -114,10 +114,12 @@ jobs:
           for cfg in base mainline intel nvidia; do
             ./yorha.ubuntu build -c config/image-$cfg.yaml
 
-            cid=$(buildah from $REGISTRY_PATH/archlinux-$cfg)
-            buildah run $cid sh -c "echo 'PRETTY_NAME=\"YoRHa Linux ($cfg) ${{ steps.meta.outputs.yorha_build }}\"' >> /etc/os-release"
-            buildah run $cid sh -c "echo 'VERSION=${{ steps.meta.outputs.yorha_build }}' >> /etc/os-release"
-            buildah commit $cid $REGISTRY_PATH/archlinux-$cfg
+            if [[ $cfg != base ]]; then
+              cid=$(buildah from $REGISTRY_PATH/archlinux-$cfg)
+              buildah run $cid sh -c "echo 'PRETTY_NAME=\"YoRHa Linux ($cfg) ${{ steps.meta.outputs.yorha_build }}\"' >> /etc/os-release"
+              buildah run $cid sh -c "echo 'VERSION=${{ steps.meta.outputs.yorha_build }}' >> /etc/os-release"
+              buildah commit $cid $REGISTRY_PATH/archlinux-$cfg
+            fi
 
             podman push $REGISTRY_PATH/archlinux-$cfg
             podman run --rm $REGISTRY_PATH/archlinux-$cfg pacman -Q > /tmp/archlinux-${cfg}_new.list
