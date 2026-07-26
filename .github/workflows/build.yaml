@@ -164,7 +164,7 @@ jobs:
       - name: Release yorha toolkit (Arch Linux)
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: build-${{ needs.build-images.outputs.yorha_build }}
+          tag_name: ${{ needs.build-images.outputs.yorha_build }}
           name: YoRHa build ${{ needs.build-images.outputs.yorha_build }}
           files: |
             yorha
