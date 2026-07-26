@@ -48,8 +48,12 @@ func (d Deployment) Created() string {
 		release = d.OSRelease()
 	)
 
-	if val, ok := release["VERSION"]; ok {
-		version, err := time.ParseInLocation("20060102.1504", val, time.Local)
+	if val, ok := release["VERSION_ID"]; ok {
+		version, err := time.ParseInLocation(
+			"20060102.1504",
+			strings.Split(val, "-")[0],
+			time.Local,
+		)
 		if err != nil {
 			return created
 		}
@@ -62,25 +66,29 @@ func (d Deployment) Created() string {
 			minutes = int(duration.Minutes()) % 60
 		)
 
-		if days > 0 {
+		switch {
+		case days > 0:
 			if days == 1 {
-				return fmt.Sprintf("%d day ago", days)
+				created = "1 day ago"
 			} else {
 				created = fmt.Sprintf("%d days ago", days)
 			}
-		} else if hours > 0 {
+
+		case hours > 0:
 			if hours == 1 {
-				created = fmt.Sprintf("%d hour ago", hours)
+				created = "1 hour ago"
 			} else {
 				created = fmt.Sprintf("%d hours ago", hours)
 			}
-		} else if minutes > 0 {
+
+		case minutes > 0:
 			if minutes == 1 {
-				created = fmt.Sprintf("%d minute ago", minutes)
+				created = "1 minute ago"
 			} else {
 				created = fmt.Sprintf("%d minutes ago", minutes)
 			}
-		} else {
+
+		default:
 			created = "Just now"
 		}
 	}
@@ -114,7 +122,7 @@ func PrintDeployments(opt *Options) {
 	}
 
 	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(writer, "\tIMAGE\tCHECKSUM\tVERSION\tCREATED\tSTATUS")
+	fmt.Fprintln(writer, "\tIMAGE\tDEPLOYMENT\tVERSION\tCREATED\tSTATUS")
 
 	for _, deployment := range deployments {
 		var status []string
@@ -134,11 +142,12 @@ func PrintDeployments(opt *Options) {
 
 		release := deployment.OSRelease()
 
-		fmt.Fprintf(writer, "%2d\t%s\t%s\t%s\t%s\t%s\n",
+		fmt.Fprintf(
+			writer, "%2d\t%s\t%s\t%s\t%s\t%s\n",
 			deployment.Index,
 			release["IMAGE"],
 			deployment.Checksum[0:11],
-			release["VERSION"],
+			release["VERSION_ID"],
 			deployment.Created(),
 			strings.Join(status, " "),
 		)

@@ -117,7 +117,7 @@ jobs:
             if [[ $cfg != base ]]; then
               cid=$(buildah from $REGISTRY_PATH/archlinux-$cfg)
               buildah run $cid sh -c "sed -i \
-                -e 's|^VERSION=.*|VERSION=${{ steps.meta.outputs.yorha_build }}|' \
+                -e 's|^VERSION_ID=.*|VERSION_ID=${{ steps.meta.outputs.yorha_build }}|' \
                 -e 's|^PRETTY_NAME=.*|PRETTY_NAME=\"YoRHa Linux ($cfg) ${{ steps.meta.outputs.yorha_build }}\"|' /etc/os-release"
               buildah commit $cid $REGISTRY_PATH/archlinux-$cfg
             fi
