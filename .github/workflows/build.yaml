@@ -100,7 +100,7 @@ jobs:
         run: 'podman pull $(sed -n "s|depends: \(.*\)|\1|p" config/image-base.yaml)'
 
       - id: meta
-        name: Set YORHA_BUILD
+        name: Set yorha_build metadata
         run: echo "yorha_build=$(TZ=Europe/London date +'%Y%m%d.%H%M')-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Build and publish container images
