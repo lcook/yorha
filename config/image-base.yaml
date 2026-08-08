@@ -20,6 +20,7 @@ packages:
   - efibootmgr
   - ostree
   - podman
+  - buildah
   - which
 files:
   - { source: overlay/etc/mkinitcpio.conf.d/ostree.conf, dest: /etc/mkinitcpio.conf.d/ }

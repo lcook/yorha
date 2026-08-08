@@ -114,7 +114,7 @@ jobs:
             ./yorha.ubuntu build -c config/image-$cfg.yaml
 
             if [[ $cfg != base ]]; then
-              cid=$(buildah from $REGISTRY_PATH/archlinux-$cfg)
+              cid=$(buildah from --pull=never $REGISTRY_PATH/archlinux-$cfg)
               buildah run $cid sh -c "sed -i \
                 -e 's|^VERSION_ID=.*|VERSION_ID=${{ steps.meta.outputs.yorha_build }}|' \
                 -e 's|^PRETTY_NAME=.*|PRETTY_NAME=\"YoRHa Linux ($cfg) ${{ steps.meta.outputs.yorha_build }}\"|' /usr/lib/os-release"
