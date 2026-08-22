@@ -1,5 +1,9 @@
 package ostree
 
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// Copyright (c) Lewis Cook <hi@lcook.net>
+
 import (
 	"bufio"
 	"encoding/json"
