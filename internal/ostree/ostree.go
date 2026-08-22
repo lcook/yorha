@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lcook/yorha/internal/logger"
+	log "github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/podman"
 	"github.com/lcook/yorha/internal/util"
 )
@@ -23,17 +23,13 @@ const (
 )
 
 type Options struct {
-	SysRoot  string
-	SysSetup string
-	SysTree  string
-
-	Image      string
-	PartLabels map[string]string
-
+	SysRoot     string
+	SysSetup    string
+	SysTree     string
+	Image       string
+	PartLabels  map[string]string
 	Interactive bool
 	ForceUpdate bool
-
-	Log *logger.Logger
 }
 
 func Environment() bool {
@@ -46,22 +42,22 @@ func Environment() bool {
 
 func CreateRootFilesystem(opt *Options) {
 	if _, err := os.Stat(opt.SysTree); err == nil {
-		opt.Log.Infof("Removing existing setup directory at %s", opt.SysTree)
+		log.Infof("Removing existing setup directory at %s", opt.SysTree)
 
 		if err := os.RemoveAll(opt.SysTree); err != nil {
-			opt.Log.Error(err.Error())
+			log.Error(err.Error())
 		}
 	}
 
-	opt.Log.Infof("Creating setup directory at %s", opt.SysTree)
+	log.Infof("Creating setup directory at %s", opt.SysTree)
 
 	if err := os.MkdirAll(opt.SysTree, 0o755); err != nil {
-		opt.Log.Error(err.Error())
+		log.Error(err.Error())
 	}
 
 	podman, err := podman.NewClient(podman.RootfullContext)
 	if err != nil {
-		opt.Log.Error(err.Error())
+		log.Error(err.Error())
 	}
 
 	var (
@@ -70,7 +66,7 @@ func CreateRootFilesystem(opt *Options) {
 	)
 
 	if opt.Interactive {
-		image = opt.Log.Inputf(
+		image = log.Inputf(
 			"Enter container image for deployment [%s]: ",
 			opt.Image,
 		)
@@ -86,44 +82,44 @@ func CreateRootFilesystem(opt *Options) {
 	}
 
 	if !podman.HasLocalImage(image) {
-		opt.Log.Infof("Container image %s not found in local storage", image)
+		log.Infof("Container image %s not found in local storage", image)
 
 		if err := podman.PullImage(image); err != nil {
-			opt.Log.Errorf(
+			log.Errorf(
 				"Failed to pull container image %s: %s",
 				image,
 				err.Error(),
 			)
 		}
 	} else if !local && !opt.ForceUpdate {
-		opt.Log.Infof("Comparing local and remote digests for image %s", image)
+		log.Infof("Comparing local and remote digests for image %s", image)
 
 		inspect, err := podman.GetImage(image)
 		if err != nil {
-			opt.Log.Error(err.Error())
+			log.Error(err.Error())
 		}
 
 		remote, err := podman.GetRemoteImage("//" + image)
 		if err != nil {
-			opt.Log.Error(err.Error())
+			log.Error(err.Error())
 		}
 
 		if inspect.ID == strings.TrimPrefix(remote.Digest.String(), "sha256:") {
-			opt.Log.Errorf(
+			log.Errorf(
 				"No update available (local:%s, remote:%s)",
 				inspect.ID[0:11],
 				strings.TrimPrefix(remote.Digest.String(), "sha256:")[0:11],
 			)
 		}
 
-		opt.Log.Infof(
+		log.Infof(
 			"Container image update available (local:%s, remote:%s)",
 			inspect.ID[0:11],
 			strings.TrimPrefix(remote.Digest.String(), "sha256:")[0:11],
 		)
 
 		if err := podman.PullImage(image); err != nil {
-			opt.Log.Errorf(
+			log.Errorf(
 				"Failed to pull latest image %s: %s",
 				image,
 				err.Error(),
@@ -131,39 +127,40 @@ func CreateRootFilesystem(opt *Options) {
 		}
 
 		if err := podman.RemoveLocalImage(inspect.ID); err != nil {
-			opt.Log.Errorf(
+			log.Errorf(
 				"Failed to remove previous image %s: %s",
 				inspect.ID[0:11],
 				err.Error(),
 			)
 		}
 
-		opt.Log.Infof(
+		log.Infof(
 			"Removed old local container image %s:%s",
 			image,
 			inspect.ID[0:11],
 		)
 	}
 
-	opt.Log.Info(
+	log.Info(
 		"Preparing OSTree filesystem from container image",
 	)
 
 	handle, err := util.GetFileDescriptor(output)
 	if err != nil {
-		opt.Log.Error(err.Error())
+		log.Error(err.Error())
 	}
 
-	opt.Log.Infof("Exporting container image %s to archive %s",
+	log.Infof(
+		"Exporting container image %s to archive %s",
 		image,
 		output,
 	)
 
 	if err := podman.ExportContainer(image, handle); err != nil {
-		opt.Log.Error(err.Error())
+		log.Error(err.Error())
 	}
 
-	opt.Log.Run("Extracting container root filesystem archive", []string{
+	log.Run("Extracting container root filesystem archive", []string{
 		"tar",
 		"xf",
 		output,
@@ -195,11 +192,12 @@ func CreateLayout(opt *Options) {
 	os.RemoveAll(opt.SysTree + "/usr/local")
 	os.Symlink("/var/usrlocal", opt.SysTree+"/usr/local")
 
-	opt.Log.Infof("Created OSTree filesystem layout at %s",
+	log.Infof(
+		"Created OSTree filesystem layout at %s",
 		opt.SysTree,
 	)
 
-	opt.Log.Info("Writing systemd-tmpfiles(8) configuration")
+	log.Info("Writing systemd-tmpfiles(8) configuration")
 
 	os.WriteFile(
 		opt.SysTree+"/usr/lib/tmpfiles.d/ostree-0-integration.conf",
@@ -253,10 +251,10 @@ d /run/media 0755 root root -`),
 		os.RemoveAll(m)
 	}
 
-	opt.Log.Run("", []string{"chmod u-s", opt.SysTree + "/usr/bin/newuidmap"})
-	opt.Log.Run("", []string{"chmod u-s", opt.SysTree + "/usr/bin/newgidmap"})
+	log.Run("", []string{"chmod u-s", opt.SysTree + "/usr/bin/newuidmap"})
+	log.Run("", []string{"chmod u-s", opt.SysTree + "/usr/bin/newgidmap"})
 
-	opt.Log.Run(
+	log.Run(
 		"Restoring user namespace capability on newuidmap",
 		[]string{
 			"setcap",
@@ -265,17 +263,18 @@ d /run/media 0755 root root -`),
 		},
 	)
 
-	opt.Log.Run(
+	log.Run(
 		"Restoring group namespace capability on newgidmap",
 		[]string{
 			"setcap",
 			"cap_setgid+eip",
 			opt.SysTree + "/usr/bin/newgidmap",
-		})
+		},
+	)
 }
 
 func DeployImage(opt *Options) {
-	opt.Log.Runf(
+	log.Runf(
 		[]string{
 			"ostree",
 			"commit",
@@ -308,7 +307,7 @@ func DeployImage(opt *Options) {
 	}
 
 	if _, err := os.Stat(kargFile); err == nil {
-		opt.Log.Infof("Applying kernel arguments from %s", kargFile)
+		log.Infof("Applying kernel arguments from %s", kargFile)
 
 		file, _ := os.Open(kargFile)
 
@@ -327,10 +326,10 @@ func DeployImage(opt *Options) {
 	cmd = append(cmd, "--retain")
 	cmd = append(cmd, DefaultBranch)
 
-	opt.Log.Run("Deploying OSTree revision", cmd)
+	log.Run("Deploying OSTree revision", cmd)
 
 	if Environment() {
-		opt.Log.Run("Regenerating GRUB configuration", []string{
+		log.Run("Regenerating GRUB configuration", []string{
 			"grub-mkconfig",
 			"-o",
 			"/boot/efi/EFI/grub/grub.cfg",

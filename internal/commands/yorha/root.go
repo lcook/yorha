@@ -9,17 +9,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/ostree"
 )
 
 var (
 	image  string
 	output string
-	opt    = &ostree.Options{
-		SysRoot: "/",
-		Log:     logger.New(),
-	}
+	opt    = &ostree.Options{SysRoot: "/"}
 )
 
 var rootCmd = &cobra.Command{

@@ -20,15 +20,13 @@ import (
 
 	"github.com/lcook/yorha/internal/disk"
 	"github.com/lcook/yorha/internal/installer"
-	"github.com/lcook/yorha/internal/logger"
+	log "github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/version"
 )
 
 var deps = []string{"podman", "ostree"}
 
 func main() {
-	log := logger.New()
-
 	color.Yellow(`yorha installer (ver:%s)`, version.Build)
 	fmt.Println()
 

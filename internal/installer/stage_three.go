@@ -11,11 +11,12 @@ import (
 
 	"golang.org/x/sys/unix"
 
+	log "github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/ostree"
 )
 
 func (i *Installer) InstallBootloader() {
-	i.Log.Run(
+	log.Run(
 		"Installing GRUB bootloader for OSTree deployment",
 		[]string{
 			"grub-install",
@@ -57,7 +58,7 @@ func (i *Installer) InstallBootloader() {
 		uintptr(unix.MS_BIND|unix.MS_REC),
 		"",
 	); err != nil {
-		i.Log.Errorf(
+		log.Errorf(
 			"Failed to bind-mount boot directory into OSTree deployment path for GRUB installation: %s",
 			err.Error(),
 		)
@@ -72,7 +73,7 @@ func (i *Installer) InstallBootloader() {
 		uintptr(unix.MS_BIND|unix.MS_REC),
 		"",
 	); err != nil {
-		i.Log.Errorf(
+		log.Errorf(
 			"Failed to bind-mount OSTree directory into GRUB installation chroot: %s",
 			err.Error(),
 		)
@@ -86,7 +87,7 @@ func (i *Installer) InstallBootloader() {
 			uintptr(unix.MS_BIND),
 			"",
 		); err != nil {
-			i.Log.Errorf(
+			log.Errorf(
 				"Failed to bind-mount %s into GRUB installation chroot: %s",
 				dev,
 				err.Error(),
@@ -94,7 +95,7 @@ func (i *Installer) InstallBootloader() {
 		}
 	}
 
-	i.Log.Run(
+	log.Run(
 		"Generating GRUB configuration inside for new OSTree deployment",
 		[]string{
 			"chroot",

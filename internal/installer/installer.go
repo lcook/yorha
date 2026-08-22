@@ -8,7 +8,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/lcook/yorha/internal/disk"
-	"github.com/lcook/yorha/internal/logger"
+	log "github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/ostree"
 )
 
@@ -40,7 +40,6 @@ func New(
 				"SYS_VAR":  partvar,
 			},
 			Interactive: true,
-			Log:         logger.New(),
 		},
 		RootSize: rootsize,
 	}
@@ -57,7 +56,7 @@ func (i *Installer) StageOne() {
 	i.CreateLayout()
 	i.CreateFormat()
 
-	i.Log.Info("Stage one complete: disk partitioning and formatting")
+	log.Info("Stage one complete: disk partitioning and formatting")
 }
 
 func (i *Installer) StageTwo() {
@@ -68,7 +67,7 @@ func (i *Installer) StageTwo() {
 	ostree.CreateRootFilesystem(i.Options)
 	ostree.CreateLayout(i.Options)
 
-	i.Log.Info("Stage two complete: OSTree repository setup and image staging")
+	log.Info("Stage two complete: OSTree repository setup and image staging")
 }
 
 func (i *Installer) StageThree() {
@@ -80,10 +79,10 @@ func (i *Installer) StageThree() {
 		i.SysRoot,
 		unix.MNT_DETACH,
 	); err != nil {
-		i.Log.Errorf("Failed to unmount sysroot: %s", err.Error())
+		log.Errorf("Failed to unmount sysroot: %s", err.Error())
 	}
 
-	i.Log.Info(
+	log.Info(
 		"Stage three complete: OSTree deployment and bootloader installation",
 	)
 }

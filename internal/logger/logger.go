@@ -20,35 +20,37 @@ type Logger struct {
 	stdout, stderr io.Writer
 }
 
-func New() *Logger {
-	return &Logger{
+var logger *Logger
+
+func init() {
+	logger = &Logger{
 		prefix: "*",
 		stdout: os.Stdout,
 		stderr: os.Stderr,
 	}
 }
 
-func (l *Logger) Info(msg string) {
+func Info(msg string) {
 	fmt.Fprintf(
-		l.stdout,
+		logger.stdout,
 		"%s %s\n",
-		color.New(color.FgGreen).Sprint(l.prefix),
+		color.New(color.FgGreen).Sprint(logger.prefix),
 		msg,
 	)
 }
 
-func (l *Logger) Warn(msg string) {
+func Warn(msg string) {
 	fmt.Fprintf(
-		l.stdout,
+		logger.stdout,
 		"%s %s\n",
 		color.New(color.FgYellow).Sprint("warn:"),
 		msg,
 	)
 }
 
-func (l *Logger) Error(msg string) {
+func Error(msg string) {
 	fmt.Fprintf(
-		l.stderr,
+		logger.stderr,
 		"%s %s\n",
 		color.New(color.FgRed).Sprint("error:"),
 		msg,
@@ -56,11 +58,11 @@ func (l *Logger) Error(msg string) {
 	os.Exit(1)
 }
 
-func (l *Logger) Input(msg string) string {
+func Input(msg string) string {
 	fmt.Fprintf(
-		l.stdout,
+		logger.stdout,
 		"%s %s",
-		color.New(color.FgGreen).Sprint(l.prefix),
+		color.New(color.FgGreen).Sprint(logger.prefix),
 		msg,
 	)
 
@@ -70,13 +72,13 @@ func (l *Logger) Input(msg string) string {
 	return input.Text()
 }
 
-func (l *Logger) Run(desc string, cmd []string) error {
+func Run(desc string, cmd []string) error {
 	if desc != "" {
-		l.Info(desc)
+		Info(desc)
 	}
 
 	fmt.Fprintf(
-		l.stdout,
+		logger.stdout,
 		"%s\n",
 		color.New(color.FgYellow).Sprint(" "+strings.Join(cmd, " ")),
 	)
@@ -84,36 +86,39 @@ func (l *Logger) Run(desc string, cmd []string) error {
 	execution := exec.Command(cmd[0], cmd[1:]...)
 
 	out, err := execution.CombinedOutput()
-	fmt.Fprint(l.stdout, string(out))
+	fmt.Fprint(logger.stdout, string(out))
 
 	return err
 }
 
-func (l *Logger) Infof(
+func Infof(
 	format string,
 	args ...any,
 ) {
-	l.Info(fmt.Sprintf(format, args...))
+	Info(fmt.Sprintf(format, args...))
 }
 
-func (l *Logger) Warnf(
+func Warnf(
 	format string,
 	args ...any,
 ) {
-	l.Warn(fmt.Sprintf(format, args...))
+	Warn(fmt.Sprintf(format, args...))
 }
 
-func (l *Logger) Errorf(
+func Errorf(
 	format string,
 	args ...any,
 ) {
-	l.Error(fmt.Sprintf(format, args...))
+	Error(fmt.Sprintf(format, args...))
 }
 
-func (l *Logger) Inputf(format string, args ...any) string {
-	return l.Input(fmt.Sprintf(format, args...))
+func Inputf(
+	format string,
+	args ...any,
+) string {
+	return Input(fmt.Sprintf(format, args...))
 }
 
-func (l *Logger) Runf(cmd []string, format string, args ...any) error {
-	return l.Run(fmt.Sprintf(format, args...), cmd)
+func Runf(cmd []string, format string, args ...any) error {
+	return Run(fmt.Sprintf(format, args...), cmd)
 }

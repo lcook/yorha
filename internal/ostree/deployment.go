@@ -15,6 +15,8 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
+
+	log "github.com/lcook/yorha/internal/logger"
 )
 
 type Deployment struct {
@@ -118,7 +120,7 @@ func (d Deployment) OSRelease() map[string]string {
 func PrintDeployments(opt *Options) {
 	deployments, err := GetDeployments(opt)
 	if err != nil {
-		opt.Log.Error(err.Error())
+		log.Error(err.Error())
 	}
 
 	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)

@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/lcook/yorha/internal/config"
+	log "github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/podman"
 )
 
@@ -34,16 +35,16 @@ var (
 
 			podman, err := podman.NewClient(socket)
 			if err != nil {
-				opt.Log.Error(err.Error())
+				log.Error(err.Error())
 			}
 
 			config, err := config.FromFile[config.Container](configfile)
 			if err != nil {
-				opt.Log.Error(err.Error())
+				log.Error(err.Error())
 			}
 
 			if !podman.HasLocalImage(config.Depends) {
-				opt.Log.Errorf(
+				log.Errorf(
 					"Required container image dependency '%s' is missing from local storage when building '%s'",
 					config.Depends,
 					config.Image,
@@ -52,7 +53,7 @@ var (
 
 			err = podman.BuildContainer(config)
 			if err != nil {
-				opt.Log.Error(err.Error())
+				log.Error(err.Error())
 			}
 		},
 	}

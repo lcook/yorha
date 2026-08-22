@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	log "github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/ostree"
 )
 
@@ -19,30 +20,30 @@ var switchCmd = &cobra.Command{
 	Short: "Switch the active OSTree deployment",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if os.Getuid() != 0 {
-			opt.Log.Error("root permission required to run this operation")
+			log.Error("root permission required to run this operation")
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		deployments, err := ostree.GetDeployments(opt)
 		if err != nil {
-			opt.Log.Error(err.Error())
+			log.Error(err.Error())
 		}
 
 		if len(deployments) == 1 {
-			opt.Log.Error("No other OSTree deployments to choose from")
+			log.Error("No other OSTree deployments to choose from")
 		}
 
 		ostree.PrintDeployments(opt)
 		fmt.Println()
 
-		input := opt.Log.Inputf(
+		input := log.Inputf(
 			"Select deployment index [0-%d]: ",
 			len(deployments)-1,
 		)
 
 		index, err := strconv.Atoi(input)
 		if err != nil {
-			opt.Log.Errorf(
+			log.Errorf(
 				"'%s' is an invalid index [0-%d]",
 				input,
 				len(deployments)-1,
@@ -50,7 +51,7 @@ var switchCmd = &cobra.Command{
 		}
 
 		if index > len(deployments)-1 || index < 0 {
-			opt.Log.Errorf(
+			log.Errorf(
 				"'%s' is an invalid index [0-%d]",
 				input,
 				len(deployments)-1,
@@ -59,10 +60,10 @@ var switchCmd = &cobra.Command{
 
 		err = ostree.SwitchDeployment(opt, index)
 		if err != nil {
-			opt.Log.Errorf("Unable to switch deployment: %s", err.Error())
+			log.Errorf("Unable to switch deployment: %s", err.Error())
 		}
 
-		opt.Log.Infof("Deployment set to: %d", index)
+		log.Infof("Deployment set to: %d", index)
 	},
 }
 

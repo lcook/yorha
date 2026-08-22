@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	log "github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/podman"
 	"github.com/lcook/yorha/internal/util"
 )
@@ -21,11 +22,11 @@ var exportCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		podman, err := podman.NewClient(podman.RootlessContext)
 		if err != nil {
-			opt.Log.Error(err.Error())
+			log.Error(err.Error())
 		}
 
 		if !podman.HasLocalImage(image) {
-			opt.Log.Errorf(
+			log.Errorf(
 				"Container image '%s' not found in local storage",
 				image,
 			)
@@ -33,7 +34,7 @@ var exportCmd = &cobra.Command{
 
 		handle, err := util.GetFileDescriptor(output)
 		if err != nil {
-			opt.Log.Error(err.Error())
+			log.Error(err.Error())
 		}
 
 		defer func() {
@@ -44,7 +45,7 @@ var exportCmd = &cobra.Command{
 
 		err = podman.ExportContainer(image, handle)
 		if err != nil {
-			opt.Log.Error(err.Error())
+			log.Error(err.Error())
 		}
 	},
 }

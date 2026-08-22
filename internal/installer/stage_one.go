@@ -7,16 +7,18 @@ package installer
 import (
 	"fmt"
 	"strings"
+
+	log "github.com/lcook/yorha/internal/logger"
 )
 
 func (i *Installer) WipeDisk() {
-	err := i.Log.Runf(
+	err := log.Runf(
 		[]string{"wipefs", "-a", i.Target.Path},
 		"Wiping disk %s: all existing data on the device will be permanently erased",
 		i.Target.Path,
 	)
 	if err != nil {
-		i.Log.Errorf("Failed to wipe disk: %s", err.Error())
+		log.Errorf("Failed to wipe disk: %s", err.Error())
 	}
 }
 
@@ -34,19 +36,19 @@ func (i *Installer) CreateLayout() {
 	fmt.Fprintf(&command, "mkpart SYS_ROOT xfs 500MiB %dGiB ", i.RootSize)
 	fmt.Fprintf(&command, "mkpart SYS_VAR xfs %dGiB 100%%", i.RootSize)
 
-	err := i.Log.Runf(
+	err := log.Runf(
 		strings.Fields(command.String()),
 		"Creating GPT partition layout on %s (SYS_BOOT: 500MiB, SYS_ROOT: %dGiB, SYS_VAR: remaining space)",
 		i.Target.Path,
 		i.RootSize,
 	)
 	if err != nil {
-		i.Log.Errorf("Failed to create partition layout: %s", err.Error())
+		log.Errorf("Failed to create partition layout: %s", err.Error())
 	}
 }
 
 func (i *Installer) CreateFormat() {
-	err := i.Log.Runf(
+	err := log.Runf(
 		[]string{
 			"mkfs.vfat",
 			"-n",
@@ -59,10 +61,10 @@ func (i *Installer) CreateFormat() {
 		i.PartLabels["SYS_BOOT"],
 	)
 	if err != nil {
-		i.Log.Errorf("Failed to format boot partition: %s", err.Error())
+		log.Errorf("Failed to format boot partition: %s", err.Error())
 	}
 
-	err = i.Log.Runf(
+	err = log.Runf(
 		[]string{
 			"mkfs.xfs",
 			"-L",
@@ -76,10 +78,10 @@ func (i *Installer) CreateFormat() {
 		i.PartLabels["SYS_ROOT"],
 	)
 	if err != nil {
-		i.Log.Errorf("Failed to format root partition: %s", err.Error())
+		log.Errorf("Failed to format root partition: %s", err.Error())
 	}
 
-	err = i.Log.Runf(
+	err = log.Runf(
 		[]string{
 			"mkfs.xfs",
 			"-L",
@@ -93,6 +95,6 @@ func (i *Installer) CreateFormat() {
 		i.PartLabels["SYS_VAR"],
 	)
 	if err != nil {
-		i.Log.Errorf("Failed to format var partition: %s", err.Error())
+		log.Errorf("Failed to format var partition: %s", err.Error())
 	}
 }

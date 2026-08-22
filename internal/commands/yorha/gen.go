@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/lcook/yorha/internal/config"
+	log "github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/util"
 )
 
@@ -31,7 +32,7 @@ var (
 			if list && configdir != "" {
 				_, err := os.ReadDir(configdir)
 				if err != nil {
-					opt.Log.Error(err.Error())
+					log.Error(err.Error())
 				}
 
 				configs := make(map[string]config.Container)
@@ -40,7 +41,7 @@ var (
 					configdir,
 					func(path string, info fs.FileInfo, err error) error {
 						if err != nil {
-							opt.Log.Error(err.Error())
+							log.Error(err.Error())
 						}
 
 						if info.IsDir() {
@@ -49,7 +50,7 @@ var (
 
 						c, err := config.FromFile[config.Container](path)
 						if err != nil {
-							opt.Log.Error(err.Error())
+							log.Error(err.Error())
 						}
 
 						configs[info.Name()] = c
@@ -59,7 +60,7 @@ var (
 				)
 
 				if len(configs) == 0 {
-					opt.Log.Errorf(
+					log.Errorf(
 						"No valid configurations found in %s",
 						configdir,
 					)
@@ -69,7 +70,8 @@ var (
 				fmt.Fprintln(writer, "Configuration\tImage\tDepends\tComment")
 
 				for file, container := range configs {
-					fmt.Fprintf(writer, "%s\t%s\t%s\t%s\n",
+					fmt.Fprintf(
+						writer, "%s\t%s\t%s\t%s\n",
 						file,
 						container.Image,
 						container.Depends,
@@ -86,12 +88,12 @@ var (
 
 			config, err := config.FromFile[config.Container](configfile)
 			if err != nil {
-				opt.Log.Error(err.Error())
+				log.Error(err.Error())
 			}
 
 			handle, err := util.GetFileDescriptor(output)
 			if err != nil {
-				opt.Log.Error(err.Error())
+				log.Error(err.Error())
 			}
 
 			defer func() {
@@ -102,7 +104,7 @@ var (
 
 			err = util.GenerateContainerfile(handle, config)
 			if err != nil {
-				opt.Log.Error(err.Error())
+				log.Error(err.Error())
 			}
 		},
 	}

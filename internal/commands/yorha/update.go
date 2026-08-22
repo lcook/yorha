@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	log "github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/ostree"
 )
 
@@ -20,11 +21,11 @@ var (
 		Short: "Update the system using the latest container image",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if os.Getuid() != 0 {
-				opt.Log.Error("root permission required to run this operation")
+				log.Error("root permission required to run this operation")
 			}
 
 			if !ostree.Environment() {
-				opt.Log.Error(
+				log.Error(
 					"Update aborted, this operation must be run inside an active OSTree environment",
 				)
 			}
@@ -37,7 +38,7 @@ var (
 			if image == "" {
 				deployments, err := ostree.GetDeployments(opt)
 				if err != nil {
-					opt.Log.Error(err.Error())
+					log.Error(err.Error())
 				}
 
 				for _, deployment := range deployments {
@@ -45,7 +46,7 @@ var (
 						release := deployment.OSRelease()
 
 						if val, ok := release["IMAGE"]; ok {
-							opt.Log.Infof(
+							log.Infof(
 								"Detected booted OSTree environment with image %s",
 								val,
 							)
@@ -63,7 +64,7 @@ var (
 			ostree.CreateLayout(opt)
 			ostree.DeployImage(opt)
 
-			opt.Log.Info("Update complete. Reboot to use the new deployment")
+			log.Info("Update complete. Reboot to use the new deployment")
 		},
 	}
 )
