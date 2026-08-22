@@ -7,15 +7,14 @@ package cmd
 import (
 	"os"
 
-	"github.com/spf13/cobra"
-
 	"github.com/lcook/yorha/internal/ostree"
+	"github.com/spf13/cobra"
 )
 
 var (
-	image  string
-	output string
-	opt    = &ostree.Options{SysRoot: "/"}
+	image        string
+	output       string
+	ostreeConfig = ostree.Config{SysRoot: "/"}
 )
 
 var rootCmd = &cobra.Command{

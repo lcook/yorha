@@ -55,10 +55,10 @@ func (i *Installer) CreateFormat() {
 			"SYS_BOOT",
 			"-F",
 			"32",
-			i.PartLabels["SYS_BOOT"],
+			i.Manager.PartLabels["SYS_BOOT"],
 		},
 		"Formatting EFI boot partition (%s) as FAT32",
-		i.PartLabels["SYS_BOOT"],
+		i.Manager.PartLabels["SYS_BOOT"],
 	)
 	if err != nil {
 		log.Errorf("Failed to format boot partition: %s", err.Error())
@@ -70,12 +70,12 @@ func (i *Installer) CreateFormat() {
 			"-L",
 			"SYS_ROOT",
 			"-f",
-			i.PartLabels["SYS_ROOT"],
+			i.Manager.PartLabels["SYS_ROOT"],
 			"-n",
 			"ftype=1",
 		},
 		"Formatting root partition (%s) as XFS",
-		i.PartLabels["SYS_ROOT"],
+		i.Manager.PartLabels["SYS_ROOT"],
 	)
 	if err != nil {
 		log.Errorf("Failed to format root partition: %s", err.Error())
@@ -87,12 +87,12 @@ func (i *Installer) CreateFormat() {
 			"-L",
 			"SYS_VAR",
 			"-f",
-			i.PartLabels["SYS_VAR"],
+			i.Manager.PartLabels["SYS_VAR"],
 			"-n",
 			"ftype=1",
 		},
 		"Formatting /var partition (%s) as XFS",
-		i.PartLabels["SYS_VAR"],
+		i.Manager.PartLabels["SYS_VAR"],
 	)
 	if err != nil {
 		log.Errorf("Failed to format var partition: %s", err.Error())

@@ -24,7 +24,7 @@ var logger *Logger
 
 func init() {
 	logger = &Logger{
-		prefix: "*",
+		prefix: "⬢",
 		stdout: os.Stdout,
 		stderr: os.Stderr,
 	}
@@ -43,7 +43,7 @@ func Warn(msg string) {
 	fmt.Fprintf(
 		logger.stdout,
 		"%s %s\n",
-		color.New(color.FgYellow).Sprint("warn:"),
+		color.New(color.FgYellow).Sprint(logger.prefix),
 		msg,
 	)
 }
@@ -52,7 +52,7 @@ func Error(msg string) {
 	fmt.Fprintf(
 		logger.stderr,
 		"%s %s\n",
-		color.New(color.FgRed).Sprint("error:"),
+		color.New(color.FgRed).Sprint(logger.prefix),
 		msg,
 	)
 	os.Exit(1)
@@ -62,7 +62,7 @@ func Input(msg string) string {
 	fmt.Fprintf(
 		logger.stdout,
 		"%s %s",
-		color.New(color.FgGreen).Sprint(logger.prefix),
+		color.New(color.FgBlue).Sprint(logger.prefix),
 		msg,
 	)
 

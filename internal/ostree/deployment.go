@@ -6,17 +6,10 @@ package ostree
 
 import (
 	"bufio"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"strconv"
 	"strings"
-	"text/tabwriter"
 	"time"
-
-	log "github.com/lcook/yorha/internal/logger"
 )
 
 type Deployment struct {
@@ -115,82 +108,4 @@ func (d Deployment) OSRelease() map[string]string {
 	}
 
 	return values
-}
-
-func PrintDeployments(opt *Options) {
-	deployments, err := GetDeployments(opt)
-	if err != nil {
-		log.Error(err.Error())
-	}
-
-	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(writer, "\tIMAGE\tDEPLOYMENT\tVERSION\tCREATED\tSTATUS")
-
-	for _, deployment := range deployments {
-		var status []string
-
-		switch true {
-		case deployment.Staged:
-			status = append(status, "staged")
-		case deployment.Pending:
-			status = append(status, "pending")
-		case deployment.Rollback:
-			status = append(status, "rollback")
-		case deployment.Pinned:
-			status = append(status, "pinned")
-		case deployment.Booted:
-			status = append(status, "booted")
-		}
-
-		release := deployment.OSRelease()
-
-		fmt.Fprintf(
-			writer, "%2d\t%s\t%s\t%s\t%s\t%s\n",
-			deployment.Index,
-			release["IMAGE"],
-			deployment.Checksum[0:11],
-			release["VERSION_ID"],
-			deployment.Created(),
-			strings.Join(status, " "),
-		)
-	}
-
-	writer.Flush()
-}
-
-func GetDeployments(opt *Options) ([]Deployment, error) {
-	cmd := exec.Command(
-		"ostree",
-		"admin",
-		"status",
-		"--sysroot="+opt.SysRoot,
-		"--json",
-	)
-
-	out, err := cmd.Output()
-	if err != nil {
-		return []Deployment{}, err
-	}
-
-	var w struct {
-		Deployments []Deployment `json:"deployments"`
-	}
-
-	err = json.Unmarshal(out, &w)
-	if err != nil || len(w.Deployments) == 0 {
-		return []Deployment{}, errors.New("no deployments found")
-	}
-
-	return w.Deployments, nil
-}
-
-func SwitchDeployment(opt *Options, index int) error {
-	_, err := exec.Command(
-		"ostree",
-		"admin",
-		"set-default",
-		strconv.Itoa(index),
-	).Output()
-
-	return err
 }

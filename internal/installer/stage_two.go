@@ -14,8 +14,8 @@ import (
 )
 
 func (i *Installer) CreateMounts() {
-	if _, err := os.Stat(i.SysRoot); err != nil {
-		if err := os.MkdirAll(i.SysRoot, 0o755); err != nil {
+	if _, err := os.Stat(i.Manager.SysRoot); err != nil {
+		if err := os.MkdirAll(i.Manager.SysRoot, 0o755); err != nil {
 			log.Errorf(
 				"Failed to create sysroot mount directory: %s",
 				err.Error(),
@@ -23,19 +23,19 @@ func (i *Installer) CreateMounts() {
 		}
 
 		log.Info(
-			"Creating missing sysroot mount directory at " + i.SysRoot,
+			"Creating missing sysroot mount directory at " + i.Manager.SysRoot,
 		)
 	}
 
 	log.Infof(
 		"Mounting root partition %s at %s",
-		i.PartLabels["SYS_ROOT"],
-		i.SysRoot,
+		i.Manager.PartLabels["SYS_ROOT"],
+		i.Manager.SysRoot,
 	)
 
 	if err := unix.Mount(
-		i.PartLabels["SYS_ROOT"],
-		i.SysRoot,
+		i.Manager.PartLabels["SYS_ROOT"],
+		i.Manager.SysRoot,
 		"xfs",
 		0,
 		"",
@@ -46,7 +46,7 @@ func (i *Installer) CreateMounts() {
 		)
 	}
 
-	efiDir := fmt.Sprintf("%s/boot/efi", i.SysRoot)
+	efiDir := fmt.Sprintf("%s/boot/efi", i.Manager.SysRoot)
 
 	if _, err := os.Stat(efiDir); err != nil {
 		if err := os.MkdirAll(efiDir, 0o755); err != nil {
@@ -64,12 +64,12 @@ func (i *Installer) CreateMounts() {
 
 	log.Infof(
 		"Mounting boot partition %s at %s",
-		i.PartLabels["SYS_BOOT"],
+		i.Manager.PartLabels["SYS_BOOT"],
 		efiDir,
 	)
 
 	if err := unix.Mount(
-		i.PartLabels["SYS_BOOT"],
+		i.Manager.PartLabels["SYS_BOOT"],
 		efiDir,
 		"vfat",
 		uintptr(0),
@@ -142,7 +142,7 @@ func (i *Installer) PatchStorage() {
 
 	newContent := storageRegex.ReplaceAllString(
 		string(content),
-		fmt.Sprintf(`$1"%s/container-tmp"`, i.SysSetup),
+		fmt.Sprintf(`$1"%s/container-tmp"`, i.Manager.SysSetup),
 	)
 
 	err = os.WriteFile(storage, []byte(newContent), 0o644)
@@ -156,7 +156,7 @@ func (i *Installer) PatchStorage() {
 
 	log.Infof(
 		"Configured image storage root to %s/container-storage",
-		i.SysSetup,
+		i.Manager.SysSetup,
 	)
 
 	content, err = os.ReadFile(containers)
@@ -172,7 +172,7 @@ func (i *Installer) PatchStorage() {
 		string(content),
 		fmt.Sprintf(
 			`image_copy_tmp_dir = "%s/container-tmp"`,
-			i.SysSetup,
+			i.Manager.SysSetup,
 		),
 	)
 
@@ -187,6 +187,6 @@ func (i *Installer) PatchStorage() {
 
 	log.Infof(
 		"Configured temporary image staging directory to %s/container-tmp",
-		i.SysSetup,
+		i.Manager.SysSetup,
 	)
 }

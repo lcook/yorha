@@ -24,7 +24,9 @@ var switchCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		deployments, err := ostree.GetDeployments(opt)
+		otree := ostree.New(ostreeConfig)
+
+		deployments, err := otree.GetDeployments()
 		if err != nil {
 			log.Error(err.Error())
 		}
@@ -33,7 +35,7 @@ var switchCmd = &cobra.Command{
 			log.Error("No other OSTree deployments to choose from")
 		}
 
-		ostree.PrintDeployments(opt)
+		otree.PrintDeployments()
 		fmt.Println()
 
 		input := log.Inputf(
@@ -58,7 +60,7 @@ var switchCmd = &cobra.Command{
 			)
 		}
 
-		err = ostree.SwitchDeployment(opt, index)
+		err = otree.SwitchDeployment(index)
 		if err != nil {
 			log.Errorf("Unable to switch deployment: %s", err.Error())
 		}

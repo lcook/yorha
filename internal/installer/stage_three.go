@@ -23,23 +23,23 @@ func (i *Installer) InstallBootloader() {
 			"--target=x86_64-efi",
 			fmt.Sprintf(
 				"--efi-directory=%s/boot/efi",
-				i.SysRoot,
+				i.Manager.SysRoot,
 			),
 			"--removable",
 			fmt.Sprintf(
 				"--boot-directory=%s/boot/efi/EFI",
-				i.SysRoot,
+				i.Manager.SysRoot,
 			),
 			"--bootloader-id=" + ostree.DefaultStateroot,
-			i.PartLabels["SYS_BOOT"],
+			i.Manager.PartLabels["SYS_BOOT"],
 		},
 	)
 
-	deployments, _ := ostree.GetDeployments(i.Options)
+	deployments, _ := i.Manager.GetDeployments()
 
 	syspath := fmt.Sprintf(
 		"%s/ostree/deploy/%s/deploy/%s.0",
-		i.SysRoot,
+		i.Manager.SysRoot,
 		ostree.DefaultStateroot,
 		deployments[0].Checksum,
 	)
@@ -52,7 +52,7 @@ func (i *Installer) InstallBootloader() {
 	}
 
 	if err := unix.Mount(
-		i.SysRoot+"/boot",
+		i.Manager.SysRoot+"/boot",
 		syspath+"/boot",
 		"xfs",
 		uintptr(unix.MS_BIND|unix.MS_REC),
@@ -67,7 +67,7 @@ func (i *Installer) InstallBootloader() {
 	os.MkdirAll(syspath+"/sysroot/ostree", 0o755)
 
 	if err := unix.Mount(
-		i.SysRoot+"/ostree",
+		i.Manager.SysRoot+"/ostree",
 		syspath+"/sysroot/ostree",
 		"xfs",
 		uintptr(unix.MS_BIND|unix.MS_REC),
@@ -106,5 +106,5 @@ func (i *Installer) InstallBootloader() {
 		},
 	)
 
-	os.RemoveAll(i.SysSetup)
+	os.RemoveAll(i.Manager.SysSetup)
 }

@@ -17,8 +17,8 @@ const (
 )
 
 type Installer struct {
-	Target disk.DiskEntry
-	*ostree.Options
+	Target   disk.DiskEntry
+	Manager  *ostree.Manager
 	RootSize int
 }
 
@@ -29,18 +29,20 @@ func New(
 ) *Installer {
 	return &Installer{
 		Target: disk,
-		Options: &ostree.Options{
-			SysRoot:  "/mnt",
-			SysSetup: "/mnt/setup",
-			SysTree:  "/mnt/setup/root",
-			Image:    DefaultImage,
-			PartLabels: map[string]string{
-				"SYS_BOOT": partboot,
-				"SYS_ROOT": partroot,
-				"SYS_VAR":  partvar,
+		Manager: ostree.New(
+			ostree.Config{
+				SysRoot:  "/mnt",
+				SysSetup: "/mnt/setup",
+				SysTree:  "/mnt/setup/root",
+				Image:    DefaultImage,
+				PartLabels: map[string]string{
+					"SYS_BOOT": partboot,
+					"SYS_ROOT": partroot,
+					"SYS_VAR":  partvar,
+				},
+				Interactive: true,
 			},
-			Interactive: true,
-		},
+		),
 		RootSize: rootsize,
 	}
 }
@@ -64,21 +66,18 @@ func (i *Installer) StageTwo() {
 	i.CreateRepository()
 	i.PatchStorage()
 
-	ostree.CreateRootFilesystem(i.Options)
-	ostree.CreateLayout(i.Options)
+	i.Manager.CreateRootFilesystem()
+	i.Manager.CreateLayout()
 
 	log.Info("Stage two complete: OSTree repository setup and image staging")
 }
 
 func (i *Installer) StageThree() {
-	ostree.DeployImage(i.Options)
+	i.Manager.DeployImage()
 
 	i.InstallBootloader()
 
-	if err := unix.Unmount(
-		i.SysRoot,
-		unix.MNT_DETACH,
-	); err != nil {
+	if err := unix.Unmount(i.Manager.SysRoot, unix.MNT_DETACH); err != nil {
 		log.Errorf("Failed to unmount sysroot: %s", err.Error())
 	}
 

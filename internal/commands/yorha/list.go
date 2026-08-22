@@ -14,7 +14,7 @@ var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List current OSTree deployments",
 	Run: func(cmd *cobra.Command, args []string) {
-		ostree.PrintDeployments(opt)
+		ostree.New(ostreeConfig).PrintDeployments()
 	},
 }
 

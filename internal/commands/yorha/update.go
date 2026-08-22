@@ -31,12 +31,13 @@ var (
 			}
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			opt.SysSetup = "/var/tmp"
-			opt.SysTree = "/var/tmp/rootfs"
-			opt.ForceUpdate = force
+			ostreeConfig.SysSetup = "/var/tmp"
+			ostreeConfig.SysTree = "/var/tmp/rootfs"
+			ostreeConfig.ForceUpdate = force
 
+			otree := ostree.New(ostreeConfig)
 			if image == "" {
-				deployments, err := ostree.GetDeployments(opt)
+				deployments, err := otree.GetDeployments()
 				if err != nil {
 					log.Error(err.Error())
 				}
@@ -58,11 +59,11 @@ var (
 				}
 			}
 
-			opt.Image = image
+			otree.Image = image
 
-			ostree.CreateRootFilesystem(opt)
-			ostree.CreateLayout(opt)
-			ostree.DeployImage(opt)
+			otree.CreateRootFilesystem()
+			otree.CreateLayout()
+			otree.DeployImage()
 
 			log.Info("Update complete. Reboot to use the new deployment")
 		},

@@ -171,8 +171,14 @@ func main() {
 			fmt.Println()
 			log.Warn("Operation aborted: exiting installer")
 
-			if err := unix.Unmount(inst.SysRoot, unix.MNT_DETACH); err == nil {
-				log.Infof("Unmounted sysroot directory: %s", inst.SysRoot)
+			if err := unix.Unmount(
+				inst.Manager.SysRoot,
+				unix.MNT_DETACH,
+			); err == nil {
+				log.Infof(
+					"Unmounted sysroot directory: %s",
+					inst.Manager.SysRoot,
+				)
 			}
 
 			os.Exit(0)
