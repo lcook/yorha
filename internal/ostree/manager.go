@@ -27,23 +27,17 @@ type Manager struct{ Config }
 func New(config Config) *Manager { return &Manager{config} }
 
 func (m *Manager) CreateRootFilesystem() {
+	podman, err := podman.NewClient(podman.RootfullContext)
+	if err != nil {
+		log.Error(err.Error())
+	}
+
 	if _, err := os.Stat(m.SysTree); err == nil {
 		log.Info("Removing previous staging environment")
 
 		if err := os.RemoveAll(m.SysTree); err != nil {
 			log.Error(err.Error())
 		}
-	}
-
-	log.Info("Initializing staging environment")
-
-	if err := os.MkdirAll(m.SysTree, 0o755); err != nil {
-		log.Error(err.Error())
-	}
-
-	podman, err := podman.NewClient(podman.RootfullContext)
-	if err != nil {
-		log.Error(err.Error())
 	}
 
 	var (
@@ -121,7 +115,11 @@ func (m *Manager) CreateRootFilesystem() {
 		)
 	}
 
-	log.Info("Preparing filesystem environment")
+	log.Info("Initializing staging environment")
+
+	if err := os.MkdirAll(m.SysTree, 0o755); err != nil {
+		log.Error(err.Error())
+	}
 
 	handle, err := util.GetFileDescriptor(output)
 	if err != nil {
@@ -141,6 +139,12 @@ func (m *Manager) CreateRootFilesystem() {
 		"-C",
 		m.SysTree,
 	})
+
+	if _, err := os.Stat(output); err == nil {
+		if err := os.RemoveAll(output); err != nil {
+			log.Error(err.Error())
+		}
+	}
 }
 
 func (m *Manager) CreateLayout() {
