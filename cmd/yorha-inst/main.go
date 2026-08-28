@@ -106,7 +106,7 @@ func main() {
 
 		answer := strings.ToLower(selected)
 		if answer == "" || (answer != "y" && answer != "yes") {
-			log.Warn("Device selection selection")
+			log.Warn("Device selection cancelled")
 			continue
 		}
 
