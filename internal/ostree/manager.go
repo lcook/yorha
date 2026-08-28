@@ -160,6 +160,15 @@ func (m *Manager) CreateLayout() {
 
 	os.Rename(m.SysTree+"/etc", m.SysTree+"/usr/etc")
 
+	for _, file := range []string{
+		m.SysTree + "/usr/etc/hostname",
+		m.SysTree + "/usr/etc/resolv.conf",
+	} {
+		if info, err := os.Stat(file); err == nil && info.Size() == 0 {
+			os.Remove(file)
+		}
+	}
+
 	os.RemoveAll(m.SysTree + "/home")
 	os.Symlink("/var/home", m.SysTree+"/home")
 
