@@ -17,7 +17,7 @@ import (
 
 func (i *Installer) InstallBootloader() {
 	log.Run(
-		"Installing GRUB bootloader for OSTree deployment",
+		"Installing GRUB bootloader",
 		[]string{
 			"grub-install",
 			"--target=x86_64-efi",
@@ -59,7 +59,7 @@ func (i *Installer) InstallBootloader() {
 		"",
 	); err != nil {
 		log.Errorf(
-			"Failed to bind-mount boot directory into OSTree deployment path for GRUB installation: %s",
+			"Failed to bind-mount boot directory for GRUB installation: %s",
 			err.Error(),
 		)
 	}
@@ -74,7 +74,7 @@ func (i *Installer) InstallBootloader() {
 		"",
 	); err != nil {
 		log.Errorf(
-			"Failed to bind-mount OSTree directory into GRUB installation chroot: %s",
+			"Failed to bind-mount OSTree directory for GRUB installation: %s",
 			err.Error(),
 		)
 	}
@@ -96,7 +96,7 @@ func (i *Installer) InstallBootloader() {
 	}
 
 	log.Run(
-		"Generating GRUB configuration inside for new OSTree deployment",
+		"Generating GRUB boot configuration",
 		[]string{
 			"chroot",
 			syspath,

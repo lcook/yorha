@@ -45,7 +45,7 @@ var (
 
 			if !podman.HasLocalImage(config.Depends) {
 				log.Errorf(
-					"Required container image dependency '%s' is missing from local storage when building '%s'",
+					"Required dependency '%s' not available for building '%s'",
 					config.Depends,
 					config.Image,
 				)

@@ -22,8 +22,9 @@ func (i *Installer) CreateMounts() {
 			)
 		}
 
-		log.Info(
-			"Creating missing sysroot mount directory at " + i.Manager.SysRoot,
+		log.Infof(
+			"Creating missing sysroot mount directory at %s",
+			i.Manager.SysRoot,
 		)
 	}
 

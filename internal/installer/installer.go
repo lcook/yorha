@@ -58,7 +58,7 @@ func (i *Installer) StageOne() {
 	i.CreateLayout()
 	i.CreateFormat()
 
-	log.Info("Stage one complete: disk partitioning and formatting")
+	log.Info("Phase one complete: Storage prepared")
 }
 
 func (i *Installer) StageTwo() {
@@ -69,7 +69,7 @@ func (i *Installer) StageTwo() {
 	i.Manager.CreateRootFilesystem()
 	i.Manager.CreateLayout()
 
-	log.Info("Stage two complete: OSTree repository setup and image staging")
+	log.Info("Phase two complete: OSTree repository setup and image staged")
 }
 
 func (i *Installer) StageThree() {
@@ -82,6 +82,6 @@ func (i *Installer) StageThree() {
 	}
 
 	log.Info(
-		"Stage three complete: OSTree deployment and bootloader installation",
+		"Phase three complete: System deployed and bootloader configured",
 	)
 }

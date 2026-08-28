@@ -14,7 +14,7 @@ import (
 func (i *Installer) WipeDisk() {
 	err := log.Runf(
 		[]string{"wipefs", "-a", i.Target.Path},
-		"Wiping disk %s: all existing data on the device will be permanently erased",
+		"Preparing storage device (%s)",
 		i.Target.Path,
 	)
 	if err != nil {
@@ -38,7 +38,7 @@ func (i *Installer) CreateLayout() {
 
 	err := log.Runf(
 		strings.Fields(command.String()),
-		"Creating GPT partition layout on %s (SYS_BOOT: 500MiB, SYS_ROOT: %dGiB, SYS_VAR: remaining space)",
+		"Creating partition layout (%s): boot (500MiB) | root (%dGiB) | var (remaining space)",
 		i.Target.Path,
 		i.RootSize,
 	)
@@ -57,7 +57,7 @@ func (i *Installer) CreateFormat() {
 			"32",
 			i.Manager.PartLabels["SYS_BOOT"],
 		},
-		"Formatting EFI boot partition (%s) as FAT32",
+		"Formatting boot partition (%s)",
 		i.Manager.PartLabels["SYS_BOOT"],
 	)
 	if err != nil {
@@ -74,7 +74,7 @@ func (i *Installer) CreateFormat() {
 			"-n",
 			"ftype=1",
 		},
-		"Formatting root partition (%s) as XFS",
+		"Formatting root partition (%s)",
 		i.Manager.PartLabels["SYS_ROOT"],
 	)
 	if err != nil {
@@ -91,7 +91,7 @@ func (i *Installer) CreateFormat() {
 			"-n",
 			"ftype=1",
 		},
-		"Formatting /var partition (%s) as XFS",
+		"Formatting var partition (%s)",
 		i.Manager.PartLabels["SYS_VAR"],
 	)
 	if err != nil {

@@ -34,7 +34,7 @@ func main() {
 		_, err := exec.LookPath(dep)
 		if err != nil {
 			log.Errorf(
-				"Required dependency '%s' not found on system, install the missing package and try again",
+				"Required dependency '%s' not found. Please install the package and try again",
 				dep,
 			)
 		}
@@ -42,11 +42,11 @@ func main() {
 
 	disks, err := disk.GetDisks()
 	if err != nil {
-		log.Errorf("Failed to probe disks: %s", err.Error())
+		log.Errorf("Unable to enumerate storage devices: %s", err.Error())
 	}
 
 	if len(disks) == 0 {
-		log.Error("No usable disks detected on system")
+		log.Error("No compatible storage devices detected")
 	}
 
 	idx := slices.IndexFunc(
@@ -64,7 +64,7 @@ func main() {
 		size                        string
 	)
 
-	log.Info("Detected available disks:")
+	log.Info("Available storage devices:")
 
 	for _, disk := range disks {
 		fmt.Printf("  %s\n", disk)
@@ -72,7 +72,7 @@ func main() {
 
 	for {
 		selected := log.Inputf(
-			"Enter the disk device to format ('?' for details) [%s]: ",
+			"Select target storage device ('?' for details) [%s]: ",
 			disks[idx].Name,
 		)
 
@@ -97,7 +97,7 @@ func main() {
 			disks,
 			func(d disk.DiskEntry) bool { return d.Path == dev },
 		) {
-			log.Warnf("'%s' is not a valid disk", dev)
+			log.Warnf("Device '%s' is not valid", dev)
 
 			continue
 		}
@@ -106,20 +106,20 @@ func main() {
 
 		answer := strings.ToLower(selected)
 		if answer == "" || (answer != "y" && answer != "yes") {
-			log.Warn("Disk selection cancelled")
+			log.Warn("Device selection selection")
 			continue
 		}
 
-		log.Warnf("This will permanently erase all data on '%s'", dev)
+		log.Warnf("Warning: All data on '%s' will be permanently erased", dev)
 
 		selected = log.Inputf(
-			"Proceed with formatting '%s'? [y/N] ",
+			"Continue with installation on '%s'? [y/N] ",
 			dev,
 		)
 
 		answer = strings.ToLower(selected)
 		if answer == "" || (answer != "y" && answer != "yes") {
-			log.Warn("Operation aborted by user")
+			log.Warn("Installation cancelled")
 
 			continue
 		}
@@ -141,7 +141,8 @@ func main() {
 		)
 
 		selected = log.Input(
-			"Enter target root partition size in GiB [25]: ")
+			"Specify root partition size size in GiB [30]: ",
+		)
 
 		size = strings.TrimPrefix(
 			strings.TrimSpace(strings.ToLower(selected)),
@@ -149,7 +150,7 @@ func main() {
 		)
 
 		if size == "" {
-			size = "25"
+			size = "30"
 		}
 
 		rootsize, err := strconv.Atoi(size)
@@ -169,7 +170,7 @@ func main() {
 		switch <-sc {
 		case os.Interrupt, syscall.SIGINT, syscall.SIGTERM:
 			fmt.Println()
-			log.Warn("Operation aborted: exiting installer")
+			log.Warn("Installation aborted: exiting installer")
 
 			if err := unix.Unmount(
 				inst.Manager.SysRoot,
@@ -188,6 +189,6 @@ func main() {
 	inst.Run()
 
 	log.Info(
-		"Installation complete. Reboot into your new system with `systemctl reboot`",
+		"Installation completed successfully. Reboot with: systemctl reboot",
 	)
 }

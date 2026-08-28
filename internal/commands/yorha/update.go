@@ -21,12 +21,12 @@ var (
 		Short: "Update the system using the latest container image",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if os.Getuid() != 0 {
-				log.Error("root permission required to run this operation")
+				log.Error("Administrative privileges required")
 			}
 
 			if !ostree.Environment() {
 				log.Error(
-					"Update aborted, this operation must be run inside an active OSTree environment",
+					"This command must be executed within an active OSTree environment",
 				)
 			}
 		},
@@ -48,7 +48,7 @@ var (
 
 						if val, ok := release["IMAGE"]; ok {
 							log.Infof(
-								"Detected booted OSTree environment with image %s",
+								"Detected booted OSTree environment with active image: %s",
 								val,
 							)
 							image = val
@@ -65,7 +65,9 @@ var (
 			otree.CreateLayout()
 			otree.DeployImage()
 
-			log.Info("Update complete. Reboot to use the new deployment")
+			log.Info(
+				"Update completed successfully. Reboot to activate the new deployment",
+			)
 		},
 	}
 )

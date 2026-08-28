@@ -20,7 +20,7 @@ var switchCmd = &cobra.Command{
 	Short: "Switch the active OSTree deployment",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if os.Getuid() != 0 {
-			log.Error("root permission required to run this operation")
+			log.Error("Administrative privileges required")
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -32,21 +32,21 @@ var switchCmd = &cobra.Command{
 		}
 
 		if len(deployments) == 1 {
-			log.Error("No other OSTree deployments to choose from")
+			log.Error("No alternative deployments available")
 		}
 
 		otree.PrintDeployments()
 		fmt.Println()
 
 		input := log.Inputf(
-			"Select deployment index [0-%d]: ",
+			"Select deployment [0-%d]: ",
 			len(deployments)-1,
 		)
 
 		index, err := strconv.Atoi(input)
 		if err != nil {
 			log.Errorf(
-				"'%s' is an invalid index [0-%d]",
+				"Invalid deployment index '%s' (must be 0-%d)",
 				input,
 				len(deployments)-1,
 			)
@@ -54,7 +54,7 @@ var switchCmd = &cobra.Command{
 
 		if index > len(deployments)-1 || index < 0 {
 			log.Errorf(
-				"'%s' is an invalid index [0-%d]",
+				"Invalid deployment index '%s' (must be 0-%d)",
 				input,
 				len(deployments)-1,
 			)
@@ -62,10 +62,10 @@ var switchCmd = &cobra.Command{
 
 		err = otree.SwitchDeployment(index)
 		if err != nil {
-			log.Errorf("Unable to switch deployment: %s", err.Error())
+			log.Errorf("Unable to activate deployment: %s", err.Error())
 		}
 
-		log.Infof("Deployment set to: %d", index)
+		log.Infof("Deployment %d activated successfully", index)
 	},
 }
 

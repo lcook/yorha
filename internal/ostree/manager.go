@@ -28,14 +28,14 @@ func New(config Config) *Manager { return &Manager{config} }
 
 func (m *Manager) CreateRootFilesystem() {
 	if _, err := os.Stat(m.SysTree); err == nil {
-		log.Infof("Removing existing setup directory at %s", m.SysTree)
+		log.Info("Removing previous staging environment")
 
 		if err := os.RemoveAll(m.SysTree); err != nil {
 			log.Error(err.Error())
 		}
 	}
 
-	log.Infof("Creating setup directory at %s", m.SysTree)
+	log.Info("Initializing staging environment")
 
 	if err := os.MkdirAll(m.SysTree, 0o755); err != nil {
 		log.Error(err.Error())
@@ -53,7 +53,7 @@ func (m *Manager) CreateRootFilesystem() {
 
 	if m.Interactive {
 		image = log.Inputf(
-			"Enter container image for deployment [%s]: ",
+			"Specify container image [%s]: ",
 			m.Image,
 		)
 
@@ -68,7 +68,7 @@ func (m *Manager) CreateRootFilesystem() {
 	}
 
 	if !podman.HasLocalImage(image) {
-		log.Infof("Container image %s not found in local storage", image)
+		log.Info("Image not found locally, pulling from registry")
 
 		if err := podman.PullImage(image); err != nil {
 			log.Errorf(
@@ -78,7 +78,7 @@ func (m *Manager) CreateRootFilesystem() {
 			)
 		}
 	} else if !local && !m.ForceUpdate {
-		log.Infof("Comparing local and remote digests for image %s", image)
+		log.Info("Checking for updates")
 
 		inspect, err := podman.GetImage(image)
 		if err != nil {
@@ -91,62 +91,50 @@ func (m *Manager) CreateRootFilesystem() {
 		}
 
 		if inspect.ID == strings.TrimPrefix(remote.Digest.String(), "sha256:") {
-			log.Errorf(
-				"No update available (local:%s, remote:%s)",
-				inspect.ID[0:11],
-				strings.TrimPrefix(remote.Digest.String(), "sha256:")[0:11],
-			)
+			log.Errorf("Current image is up to date (%s)", inspect.ID[0:11])
 		}
 
 		log.Infof(
-			"Container image update available (local:%s, remote:%s)",
+			"Newer version available (local: %s -> remote: %s)",
 			inspect.ID[0:11],
 			strings.TrimPrefix(remote.Digest.String(), "sha256:")[0:11],
 		)
 
 		if err := podman.PullImage(image); err != nil {
 			log.Errorf(
-				"Failed to pull latest image %s: %s",
-				image,
+				"Failed to pull update: %s",
 				err.Error(),
 			)
 		}
 
 		if err := podman.RemoveLocalImage(inspect.ID); err != nil {
 			log.Errorf(
-				"Failed to remove previous image %s: %s",
+				"Failed to remove previous image (%s): %s",
 				inspect.ID[0:11],
 				err.Error(),
 			)
 		}
 
 		log.Infof(
-			"Removed old local container image %s:%s",
-			image,
+			"Cleaned up previous revision (%s)",
 			inspect.ID[0:11],
 		)
 	}
 
-	log.Info(
-		"Preparing OSTree filesystem from container image",
-	)
+	log.Info("Preparing filesystem environment")
 
 	handle, err := util.GetFileDescriptor(output)
 	if err != nil {
 		log.Error(err.Error())
 	}
 
-	log.Infof(
-		"Exporting container image %s to archive %s",
-		image,
-		output,
-	)
+	log.Info("Exporting image to staging directory")
 
 	if err := podman.ExportContainer(image, handle); err != nil {
 		log.Error(err.Error())
 	}
 
-	log.Run("Extracting container root filesystem archive", []string{
+	log.Run("Extracting container root filesystem", []string{
 		"tar",
 		"xf",
 		output,
@@ -277,7 +265,7 @@ func (m *Manager) DeployImage() {
 			"--branch=" + DefaultBranch,
 			"--tree=dir=" + m.SysTree,
 		},
-		"Committing new root filesystem to OSTree branch %s from directory %s",
+		"Committing root filesystem to OSTree branch %s from directory %s",
 		DefaultBranch,
 		m.SysTree,
 	)
@@ -302,7 +290,7 @@ func (m *Manager) DeployImage() {
 	}
 
 	if _, err := os.Stat(kargFile); err == nil {
-		log.Infof("Applying kernel arguments from %s", kargFile)
+		log.Infof("Applying kernel parameters from %s", kargFile)
 
 		file, _ := os.Open(kargFile)
 
@@ -324,7 +312,7 @@ func (m *Manager) DeployImage() {
 	log.Run("Deploying OSTree revision", cmd)
 
 	if Environment() {
-		log.Run("Regenerating GRUB configuration", []string{
+		log.Run("Updating boot configuration", []string{
 			"grub-mkconfig",
 			"-o",
 			"/boot/efi/EFI/grub/grub.cfg",
