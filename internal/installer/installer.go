@@ -16,34 +16,35 @@ const (
 	DefaultImage = "ghcr.io/lcook/yorha/archlinux-mainline"
 )
 
-type Installer struct {
-	Target   disk.DiskEntry
-	Manager  *ostree.Manager
+type Partitions struct {
+	Boot     string
+	Root     string
+	Var      string
 	RootSize int
+}
+
+type Installer struct {
+	Target     disk.DiskEntry
+	Manager    *ostree.Manager
+	Partitions Partitions
 }
 
 func New(
 	disk disk.DiskEntry,
-	partboot, partroot, partvar string,
-	rootsize int,
+	partitions Partitions,
 ) *Installer {
 	return &Installer{
 		Target: disk,
 		Manager: ostree.New(
 			ostree.Config{
-				SysRoot:  "/mnt",
-				SysSetup: "/mnt/setup",
-				SysTree:  "/mnt/setup/root",
-				Image:    DefaultImage,
-				PartLabels: map[string]string{
-					"SYS_BOOT": partboot,
-					"SYS_ROOT": partroot,
-					"SYS_VAR":  partvar,
-				},
+				SysRoot:     "/mnt",
+				SysSetup:    "/mnt/setup",
+				SysTree:     "/mnt/setup/root",
+				Image:       DefaultImage,
 				Interactive: true,
 			},
 		),
-		RootSize: rootsize,
+		Partitions: partitions,
 	}
 }
 

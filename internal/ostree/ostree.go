@@ -18,7 +18,6 @@ type Config struct {
 	SysSetup    string
 	SysTree     string
 	Image       string
-	PartLabels  map[string]string
 	Interactive bool
 	ForceUpdate bool
 }

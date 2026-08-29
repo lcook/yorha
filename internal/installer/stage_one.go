@@ -33,14 +33,22 @@ func (i *Installer) CreateLayout() {
 	command.WriteString("mkpart SYS_BOOT fat32 0% 500MiB ")
 	command.WriteString("set 1 esp on ")
 
-	fmt.Fprintf(&command, "mkpart SYS_ROOT xfs 500MiB %dGiB ", i.RootSize)
-	fmt.Fprintf(&command, "mkpart SYS_VAR xfs %dGiB 100%%", i.RootSize)
+	fmt.Fprintf(
+		&command,
+		"mkpart SYS_ROOT xfs 500MiB %dGiB ",
+		i.Partitions.RootSize,
+	)
+	fmt.Fprintf(
+		&command,
+		"mkpart SYS_VAR xfs %dGiB 100%%",
+		i.Partitions.RootSize,
+	)
 
 	err := log.Runf(
 		strings.Fields(command.String()),
 		"Creating partition layout (%s): boot (500MiB) | root (%dGiB) | var (remaining space)",
 		i.Target.Path,
-		i.RootSize,
+		i.Partitions.RootSize,
 	)
 	if err != nil {
 		log.Errorf("Failed to create partition layout: %s", err.Error())
@@ -55,10 +63,10 @@ func (i *Installer) CreateFormat() {
 			"SYS_BOOT",
 			"-F",
 			"32",
-			i.Manager.PartLabels["SYS_BOOT"],
+			i.Partitions.Boot,
 		},
 		"Formatting boot partition (%s)",
-		i.Manager.PartLabels["SYS_BOOT"],
+		i.Partitions.Boot,
 	)
 	if err != nil {
 		log.Errorf("Failed to format boot partition: %s", err.Error())
@@ -70,12 +78,12 @@ func (i *Installer) CreateFormat() {
 			"-L",
 			"SYS_ROOT",
 			"-f",
-			i.Manager.PartLabels["SYS_ROOT"],
+			i.Partitions.Root,
 			"-n",
 			"ftype=1",
 		},
 		"Formatting root partition (%s)",
-		i.Manager.PartLabels["SYS_ROOT"],
+		i.Partitions.Root,
 	)
 	if err != nil {
 		log.Errorf("Failed to format root partition: %s", err.Error())
@@ -87,12 +95,12 @@ func (i *Installer) CreateFormat() {
 			"-L",
 			"SYS_VAR",
 			"-f",
-			i.Manager.PartLabels["SYS_VAR"],
+			i.Partitions.Var,
 			"-n",
 			"ftype=1",
 		},
 		"Formatting var partition (%s)",
-		i.Manager.PartLabels["SYS_VAR"],
+		i.Partitions.Var,
 	)
 	if err != nil {
 		log.Errorf("Failed to format var partition: %s", err.Error())

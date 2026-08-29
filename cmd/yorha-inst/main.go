@@ -59,9 +59,8 @@ func main() {
 	}
 
 	var (
-		inst                        *installer.Installer
-		partboot, partroot, partvar string
-		size                        string
+		inst *installer.Installer
+		size string
 	)
 
 	log.Info("Available storage devices:")
@@ -124,15 +123,16 @@ func main() {
 			continue
 		}
 
+		var partitions installer.Partitions
 		if strings.Contains(dev, "nvme") ||
 			strings.Contains(dev, "mmcblk") {
-			partboot = dev + "p1"
-			partroot = dev + "p2"
-			partvar = dev + "p3"
+			partitions.Boot = dev + "p1"
+			partitions.Root = dev + "p2"
+			partitions.Var = dev + "p3"
 		} else {
-			partboot = dev + "1"
-			partroot = dev + "2"
-			partvar = dev + "3"
+			partitions.Boot = dev + "1"
+			partitions.Root = dev + "2"
+			partitions.Var = dev + "3"
 		}
 
 		i := slices.IndexFunc(
@@ -141,7 +141,7 @@ func main() {
 		)
 
 		selected = log.Input(
-			"Specify root partition size size in GiB [30]: ",
+			"Specify root partition size in GiB [30]: ",
 		)
 
 		size = strings.TrimPrefix(
@@ -158,7 +158,9 @@ func main() {
 			log.Errorf("Invalid root partition size: %s", err.Error())
 		}
 
-		inst = installer.New(disks[i], partboot, partroot, partvar, rootsize)
+		partitions.RootSize = rootsize
+
+		inst = installer.New(disks[i], partitions)
 
 		break
 	}

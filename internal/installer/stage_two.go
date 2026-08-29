@@ -30,12 +30,12 @@ func (i *Installer) CreateMounts() {
 
 	log.Infof(
 		"Mounting root partition %s at %s",
-		i.Manager.PartLabels["SYS_ROOT"],
+		i.Partitions.Root,
 		i.Manager.SysRoot,
 	)
 
 	if err := unix.Mount(
-		i.Manager.PartLabels["SYS_ROOT"],
+		i.Partitions.Root,
 		i.Manager.SysRoot,
 		"xfs",
 		0,
@@ -65,12 +65,12 @@ func (i *Installer) CreateMounts() {
 
 	log.Infof(
 		"Mounting boot partition %s at %s",
-		i.Manager.PartLabels["SYS_BOOT"],
+		i.Partitions.Boot,
 		efiDir,
 	)
 
 	if err := unix.Mount(
-		i.Manager.PartLabels["SYS_BOOT"],
+		i.Partitions.Boot,
 		efiDir,
 		"vfat",
 		uintptr(0),

@@ -31,7 +31,7 @@ func (i *Installer) InstallBootloader() {
 				i.Manager.SysRoot,
 			),
 			"--bootloader-id=" + ostree.DefaultStateroot,
-			i.Manager.PartLabels["SYS_BOOT"],
+			i.Partitions.Boot,
 		},
 	)
 
