@@ -1,0 +1,7 @@
+NAME="YoRHa Linux Installer"
+ID=yorha
+ID_LIKE=arch
+ANSI_COLOR="0;38;2;100;44;254;48;2;255;255;255"
+HOME_URL="https://github.com/lcook/yorha"
+PRETTY_NAME="YoRHa Linux Installer"
+LOGO=yorha

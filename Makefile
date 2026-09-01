@@ -4,6 +4,8 @@
 
 .DEFAULT_GOAL = help
 
+include Makefile.qemu
+
 VER = 0.1.0
 HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo "devel")
 
@@ -43,7 +45,7 @@ gen: yorha
 	$(call foreach-image,gen,-o Containerfile.$$image)
 
 clean:
-	rm -f $(PROGS) Containerfile*
+	rm -rfv $(PROGS) Containerfile* $(ARCHISO_OUT) $(ARCHISO_TMP)
 
 help:
 	@echo "build              | Build binaries with all features enabled"
@@ -51,5 +53,7 @@ help:
 	@echo "build-images       | Build container images (base, mainline)"
 	@echo "build-images-extra | Build container images including nvidia and intel"
 	@echo "gen                | Generate Containerfiles for all image types"
-	@echo "clean              | Remove built binaries and Containerfiles"
+	@echo "qemu-installer     | Build bootable installer ISO"
+	@echo "qemu-installer-run | Create disk and launch QEMU with installer ISO"
+	@echo "clean              | Remove build artifacts and generated files"
 	@echo "help               | Show this help message"

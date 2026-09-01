@@ -1,0 +1,25 @@
+.PHONY: qemu-installer qemu-installer-run
+
+ARCHISO_DIR = archiso
+ARCHISO_OUT = $(ARCHISO_DIR)_release
+ARCHISO_TMP = /tmp/archiso-tmp
+ARCHISO_FLAGS = -v -r -w $(ARCHISO_TMP) -o $(ARCHISO_OUT) $(ARCHISO_DIR)
+
+QEMU_MEMORY = 4096
+QEMU_DISK_SIZE = 50G
+QEMU_DISK_IMAGE = $(ARCHISO_OUT)/yorha-linux.qcow2
+
+QEMU_FLAGS = -enable-kvm -m $(QEMU_MEMORY) \
+		-drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd \
+		-drive file=$(QEMU_DISK_IMAGE),if=virtio,format=qcow2 \
+		-cdrom $(ARCHISO_OUT)/*.iso
+
+qemu-installer: yorha-inst
+	cp -v yorha-inst $(ARCHISO_DIR)/airootfs/usr/local/bin
+	mkarchiso $(ARCHISO_FLAGS)
+
+$(QEMU_DISK_IMAGE):
+	qemu-img create -f qcow2 $@ $(QEMU_DISK_SIZE)
+
+qemu-installer-run: qemu-installer $(QEMU_DISK_IMAGE)
+	qemu-system-x86-64 $(QEMU_FLAGS)

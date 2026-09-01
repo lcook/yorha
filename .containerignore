@@ -1,5 +1,6 @@
 .git
 .github
 .gitmodules
-README.md
 LICENSE
+README.md
+archiso
