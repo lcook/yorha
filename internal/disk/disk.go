@@ -49,6 +49,7 @@ func GetDisks() ([]DiskEntry, error) {
 		name := dirent.Name()
 
 		if strings.HasPrefix(name, "loop") ||
+			strings.HasPrefix(name, "fd") ||
 			strings.HasPrefix(name, "dm-") ||
 			strings.HasPrefix(name, "ram") ||
 			strings.HasPrefix(name, "sr") ||
