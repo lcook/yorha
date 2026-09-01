@@ -7,6 +7,7 @@ package installer
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 
 	log "github.com/lcook/yorha/internal/logger"
@@ -123,10 +124,10 @@ func (i *Installer) CreateRepository() {
 
 func (i *Installer) PatchStorage() {
 	var (
-		storage      = "/etc/containers/storage.conf"
-		storageRegex = regexp.MustCompile(`(?m)^(graphroot\s*=\s*).*$`)
+		storage      = "/usr/share/containers/storage.conf"
+		storageRegex = regexp.MustCompile(`(?m)^# (graphroot\s*=\s*).*$`)
 
-		containers      = "/etc/containers/containers.conf"
+		containers      = "/usr/share/containers/containers.conf"
 		containersRegex = regexp.MustCompile(
 			`(?m)^# image_copy_tmp_dir\s*=\s*.*`,
 		)
@@ -160,6 +161,8 @@ func (i *Installer) PatchStorage() {
 		i.Manager.SysSetup,
 	)
 
+	os.MkdirAll(filepath.Join(i.Manager.SysSetup, "container-storage"), 0o755)
+
 	content, err = os.ReadFile(containers)
 	if err != nil {
 		log.Errorf(
@@ -190,4 +193,6 @@ func (i *Installer) PatchStorage() {
 		"Configured temporary image staging directory to %s/container-tmp",
 		i.Manager.SysSetup,
 	)
+
+	os.MkdirAll(filepath.Join(i.Manager.SysSetup, "container-tmp"), 0o755)
 }
