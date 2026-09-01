@@ -24,13 +24,17 @@ import (
 	"github.com/lcook/yorha/internal/version"
 )
 
-var deps = []string{"podman", "ostree"}
-
 func main() {
 	color.Yellow(`yorha installer (ver:%s)`, version.Build)
 	fmt.Println()
 
-	for _, dep := range deps {
+	for _, dep := range []string{
+		"podman",
+		"ostree",
+		"parted",
+		"mkfs.vfat",
+		"mkfs.xfs",
+	} {
 		_, err := exec.LookPath(dep)
 		if err != nil {
 			log.Errorf(
