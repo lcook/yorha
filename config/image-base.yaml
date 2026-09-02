@@ -24,6 +24,7 @@ packages:
   - which
 files:
   - { source: overlay/etc/mkinitcpio.conf.d/ostree.conf, dest: /etc/mkinitcpio.conf.d/ }
+  - { source: overlay/usr/lib/ostree/prepare-root.conf, dest: /usr/lib/ostree/ }
   - { source: overlay/etc/modprobe.d/disable-overlay-redirect-dir.conf, dest: /etc/modprobe.d }
   - { source: overlay/etc/fstab, dest: /etc }
 services:
