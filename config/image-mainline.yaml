@@ -1,6 +1,6 @@
 image: localhost/archlinux-mainline
 depends: localhost/archlinux-base:latest
-comment: Mainline YoRHa container image providing the core desktop and environment
+comment: YoRHa desktop image with Hyprland
 environment:
   DEFAULT_THEME: yorha # See dots/theme.conf for list of available themes
 packages:

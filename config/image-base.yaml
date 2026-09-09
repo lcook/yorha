@@ -1,6 +1,6 @@
 image: localhost/archlinux-base
 depends: docker.io/library/archlinux:latest
-comment: Base YoRHa container image built from Arch Linux
+comment: YoRHa base image with system tooling
 environment:
   DEFAULT_TIMEZONE: Europe/London
   DEFAULT_KEYMAP: us

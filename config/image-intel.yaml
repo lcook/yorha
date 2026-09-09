@@ -1,6 +1,6 @@
 image: localhost/archlinux-intel
 depends: localhost/archlinux-mainline:latest
-comment: YoRHa container image with Intel support
+comment: YoRHa desktop image with Intel graphics drivers and media acceleration
 packages:
   - intel-media-driver
   - vulkan-intel

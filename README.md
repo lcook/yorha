@@ -195,10 +195,10 @@ Switch the active OSTree deployment:
 
 | Image | Description |
 |-------|-------------|
-| [ghcr.io/lcook/yorha/archlinux-base](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-base) | Base YoRHa container image built from Arch Linux |
-| [ghcr.io/lcook/yorha/archlinux-mainline](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-mainline) | Mainline YoRHa container image providing the core desktop and environment |
-| [ghcr.io/lcook/yorha/archlinux-nvidia](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-nvidia) | YoRHa container image with NVIDIA GPU support |
-| [ghcr.io/lcook/yorha/archlinux-intel](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-intel) | YoRHa container image with Intel GPU support |
+| [ghcr.io/lcook/yorha/archlinux-base](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-base) | YoRHa base image with system tooling |
+| [ghcr.io/lcook/yorha/archlinux-mainline](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-mainline) | YoRHa desktop image with Hyprland |
+| [ghcr.io/lcook/yorha/archlinux-nvidia](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-nvidia) | YoRHa desktop image with NVIDIA graphics drivers |
+| [ghcr.io/lcook/yorha/archlinux-intel](https://github.com/lcook/yorha/pkgs/container/yorha%2Farchlinux-intel) | YoRHa desktop image with Intel graphics drivers and media acceleration |
 
 Updates, removals and additions to the latest container images can be found [here](https://github.com/lcook/yorha/releases/latest).
 

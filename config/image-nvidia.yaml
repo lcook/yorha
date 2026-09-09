@@ -1,6 +1,6 @@
 image: localhost/archlinux-nvidia
 depends: localhost/archlinux-mainline:latest
-comment: YoRHa container image with NVIDIA support
+comment: YoRHa desktop image with NVIDIA graphics drivers
 packages:
   - nvidia-open-dkms
   - libva-nvidia-driver
