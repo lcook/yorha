@@ -59,4 +59,7 @@ template: |
   {{ServiceCommands "enable" .Services.Enable}}
   {{ServiceCommands "mask" .Services.Mask}}
 
+  # https://github.com/ostreedev/ostree/issues/3198
+  RUN sed -i "s|grub_probe\} --target=device /\`|grub_probe} --target=device /sysroot\`|g" /usr/bin/grub-mkconfig
+
   RUN echo "root:{{index .Environment "DEFAULT_ROOT_PASSWORD"}}" | chpasswd
