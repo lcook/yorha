@@ -17,6 +17,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/lcook/yorha/internal/images"
 	log "github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/podman"
 	"github.com/lcook/yorha/internal/util"
@@ -46,13 +47,36 @@ func (m *Manager) CreateRootFilesystem() {
 	)
 
 	if m.Interactive {
-		image = log.Inputf(
-			"Specify container image [%s]: ",
-			m.Image,
-		)
+		for {
+			for idx, image := range images.Images {
+				fmt.Printf(
+					"[%d] %s: %s\n",
+					idx,
+					image.Name,
+					image.Description,
+				)
+			}
 
-		if image == "" {
-			image = m.Image
+			input := log.Inputf(
+				"Select container image [0-%d]: ",
+				len(images.Images)-1,
+			)
+
+			index, err := strconv.Atoi(input)
+			if err != nil || index < 0 || index >= len(images.Images) {
+				continue
+			}
+
+			if index == len(images.Images)-1 {
+				image = log.Input("Enter custom image location: ")
+				if image == "" {
+					continue
+				}
+			} else {
+				image = images.Images[index].Name
+			}
+
+			break
 		}
 	}
 

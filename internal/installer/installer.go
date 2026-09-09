@@ -8,12 +8,9 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/lcook/yorha/internal/disk"
+	"github.com/lcook/yorha/internal/images"
 	log "github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/ostree"
-)
-
-const (
-	DefaultImage = "ghcr.io/lcook/yorha/archlinux-mainline"
 )
 
 type Partitions struct {
@@ -40,7 +37,7 @@ func New(
 				SysRoot:     "/mnt",
 				SysSetup:    "/mnt/setup",
 				SysTree:     "/mnt/setup/root",
-				Image:       DefaultImage,
+				Image:       images.DefaultImage,
 				Interactive: true,
 			},
 		),
