@@ -1,4 +1,4 @@
-.PHONY: build build-thin build-images build-images-extra gen clean help
+.PHONY: build build-thin build-images build-images-extra gen update-dots clean help
 .DELETE_ON_ERROR:
 .ONESHELL:
 
@@ -44,6 +44,9 @@ gen: IMAGES += nvidia intel
 gen: yorha
 	$(call foreach-image,gen,-o Containerfile.$$image)
 
+update-dots:
+	git submodule update --remote --merge dots
+
 clean:
 	rm -rfv $(PROGS) Containerfile* $(ARCHISO_OUT) $(ARCHISO_TMP)
 
@@ -53,6 +56,7 @@ help:
 	@echo "build-images       | Build container images (base, mainline)"
 	@echo "build-images-extra | Build container images including nvidia and intel"
 	@echo "gen                | Generate Containerfiles for all image types"
+	@echo "update-dots        | Merge latest dotfiles submodule"
 	@echo "qemu-installer     | Build bootable installer ISO"
 	@echo "qemu-installer-run | Create disk and launch QEMU with installer ISO"
 	@echo "clean              | Remove build artifacts and generated files"
