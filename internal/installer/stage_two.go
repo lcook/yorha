@@ -15,18 +15,20 @@ import (
 )
 
 func (i *Installer) CreateMounts() {
-	if _, err := os.Stat(i.Manager.SysRoot); err != nil {
-		if err := os.MkdirAll(i.Manager.SysRoot, 0o755); err != nil {
-			log.Errorf(
-				"Failed to create sysroot mount directory: %s",
-				err.Error(),
+	if !i.Manager.Dryrun {
+		if _, err := os.Stat(i.Manager.SysRoot); err != nil {
+			if err := os.MkdirAll(i.Manager.SysRoot, 0o755); err != nil {
+				log.Errorf(
+					"Failed to create sysroot mount directory: %s",
+					err.Error(),
+				)
+			}
+
+			log.Infof(
+				"Creating missing sysroot mount directory at %s",
+				i.Manager.SysRoot,
 			)
 		}
-
-		log.Infof(
-			"Creating missing sysroot mount directory at %s",
-			i.Manager.SysRoot,
-		)
 	}
 
 	log.Infof(
@@ -35,33 +37,35 @@ func (i *Installer) CreateMounts() {
 		i.Manager.SysRoot,
 	)
 
-	if err := unix.Mount(
-		i.Partitions.Root,
-		i.Manager.SysRoot,
-		"xfs",
-		0,
-		"",
-	); err != nil {
-		log.Errorf(
-			"Failed to mount root partition at sysroot: %s",
-			err.Error(),
-		)
-	}
-
 	efiDir := fmt.Sprintf("%s/boot/efi", i.Manager.SysRoot)
 
-	if _, err := os.Stat(efiDir); err != nil {
-		if err := os.MkdirAll(efiDir, 0o755); err != nil {
+	if !i.Manager.Dryrun {
+		if err := unix.Mount(
+			i.Partitions.Root,
+			i.Manager.SysRoot,
+			"xfs",
+			0,
+			"",
+		); err != nil {
 			log.Errorf(
-				"Failed to create EFI system partition mount point: %s",
+				"Failed to mount root partition at sysroot: %s",
 				err.Error(),
 			)
 		}
 
-		log.Infof(
-			"Creating missing EFI system partition mount point at %s",
-			efiDir,
-		)
+		if _, err := os.Stat(efiDir); err != nil {
+			if err := os.MkdirAll(efiDir, 0o755); err != nil {
+				log.Errorf(
+					"Failed to create EFI system partition mount point: %s",
+					err.Error(),
+				)
+			}
+
+			log.Infof(
+				"Creating missing EFI system partition mount point at %s",
+				efiDir,
+			)
+		}
 	}
 
 	log.Infof(
@@ -70,14 +74,16 @@ func (i *Installer) CreateMounts() {
 		efiDir,
 	)
 
-	if err := unix.Mount(
-		i.Partitions.Boot,
-		efiDir,
-		"vfat",
-		uintptr(0),
-		"",
-	); err != nil {
-		log.Errorf("Unable to mount boot partition: %s", err.Error())
+	if !i.Manager.Dryrun {
+		if err := unix.Mount(
+			i.Partitions.Boot,
+			efiDir,
+			"vfat",
+			uintptr(0),
+			"",
+		); err != nil {
+			log.Errorf("Unable to mount boot partition: %s", err.Error())
+		}
 	}
 }
 
@@ -92,6 +98,7 @@ func (i *Installer) CreateRepository() {
 			"--modern",
 			"/mnt",
 		},
+		i.Manager.Dryrun,
 	)
 
 	log.Run("Initializing OSTree stateroot", []string{
@@ -100,14 +107,14 @@ func (i *Installer) CreateRepository() {
 		"stateroot-init",
 		"--sysroot=/mnt",
 		"yorha",
-	})
+	}, i.Manager.Dryrun)
 
 	log.Run("Initializing bare OSTree repository", []string{
 		"ostree",
 		"init",
 		"--repo=/mnt/ostree/repo",
 		"--mode=bare",
-	})
+	}, i.Manager.Dryrun)
 
 	log.Run(
 		"Enabling relative boot paths for BLS entries",
@@ -119,6 +126,7 @@ func (i *Installer) CreateRepository() {
 			"sysroot.bootprefix",
 			"true",
 		},
+		i.Manager.Dryrun,
 	)
 }
 
@@ -133,27 +141,34 @@ func (i *Installer) PatchStorage() {
 		)
 	)
 
-	content, err := os.ReadFile(storage)
-	if err != nil {
-		log.Errorf(
-			"Failed to read container storage configuration %s: %s",
-			storage,
-			err.Error(),
-		)
-	}
-
-	newContent := storageRegex.ReplaceAllString(
-		string(content),
-		fmt.Sprintf(`$1"%s/container-tmp"`, i.Manager.SysSetup),
+	var (
+		content []byte
+		err     error
 	)
 
-	err = os.WriteFile(storage, []byte(newContent), 0o644)
-	if err != nil {
-		log.Errorf(
-			"Failed to write storage configuration %s: %s",
-			storage,
-			err.Error(),
+	if !i.Manager.Dryrun {
+		content, err = os.ReadFile(storage)
+		if err != nil {
+			log.Errorf(
+				"Failed to read container storage configuration %s: %s",
+				storage,
+				err.Error(),
+			)
+		}
+
+		newContent := storageRegex.ReplaceAllString(
+			string(content),
+			fmt.Sprintf(`$1"%s/container-tmp"`, i.Manager.SysSetup),
 		)
+
+		err = os.WriteFile(storage, []byte(newContent), 0o644)
+		if err != nil {
+			log.Errorf(
+				"Failed to write storage configuration %s: %s",
+				storage,
+				err.Error(),
+			)
+		}
 	}
 
 	log.Infof(
@@ -161,32 +176,39 @@ func (i *Installer) PatchStorage() {
 		i.Manager.SysSetup,
 	)
 
-	os.MkdirAll(filepath.Join(i.Manager.SysSetup, "container-storage"), 0o755)
+	var newContent string
 
-	content, err = os.ReadFile(containers)
-	if err != nil {
-		log.Errorf(
-			"Failed to read containers configuration %s: %s",
-			containers,
-			err.Error(),
+	if !i.Manager.Dryrun {
+		os.MkdirAll(
+			filepath.Join(i.Manager.SysSetup, "container-storage"),
+			0o755,
 		)
-	}
 
-	newContent = containersRegex.ReplaceAllString(
-		string(content),
-		fmt.Sprintf(
-			`image_copy_tmp_dir = "%s/container-tmp"`,
-			i.Manager.SysSetup,
-		),
-	)
+		content, err = os.ReadFile(containers)
+		if err != nil {
+			log.Errorf(
+				"Failed to read containers configuration %s: %s",
+				containers,
+				err.Error(),
+			)
+		}
 
-	err = os.WriteFile(containers, []byte(newContent), 0o644)
-	if err != nil {
-		log.Errorf(
-			"Failed to write containers configuration %s: %s",
-			containers,
-			err.Error(),
+		newContent = containersRegex.ReplaceAllString(
+			string(content),
+			fmt.Sprintf(
+				`image_copy_tmp_dir = "%s/container-tmp"`,
+				i.Manager.SysSetup,
+			),
 		)
+
+		err = os.WriteFile(containers, []byte(newContent), 0o644)
+		if err != nil {
+			log.Errorf(
+				"Failed to write containers configuration %s: %s",
+				containers,
+				err.Error(),
+			)
+		}
 	}
 
 	log.Infof(
@@ -194,5 +216,7 @@ func (i *Installer) PatchStorage() {
 		i.Manager.SysSetup,
 	)
 
-	os.MkdirAll(filepath.Join(i.Manager.SysSetup, "container-tmp"), 0o755)
+	if !i.Manager.Dryrun {
+		os.MkdirAll(filepath.Join(i.Manager.SysSetup, "container-tmp"), 0o755)
+	}
 }

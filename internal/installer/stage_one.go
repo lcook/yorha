@@ -14,6 +14,7 @@ import (
 func (i *Installer) WipeDisk() {
 	err := log.Runf(
 		[]string{"wipefs", "-a", i.Target.Path},
+		i.Manager.Dryrun,
 		"Preparing storage device (%s)",
 		i.Target.Path,
 	)
@@ -46,6 +47,7 @@ func (i *Installer) CreateLayout() {
 
 	err := log.Runf(
 		strings.Fields(command.String()),
+		i.Manager.Dryrun,
 		"Creating partition layout (%s): boot (500MiB) | root (%dGiB) | var (remaining space)",
 		i.Target.Path,
 		i.Partitions.RootSize,
@@ -65,6 +67,7 @@ func (i *Installer) CreateFormat() {
 			"32",
 			i.Partitions.Boot,
 		},
+		i.Manager.Dryrun,
 		"Formatting boot partition (%s)",
 		i.Partitions.Boot,
 	)
@@ -82,6 +85,7 @@ func (i *Installer) CreateFormat() {
 			"-n",
 			"ftype=1",
 		},
+		i.Manager.Dryrun,
 		"Formatting root partition (%s)",
 		i.Partitions.Root,
 	)
@@ -99,6 +103,7 @@ func (i *Installer) CreateFormat() {
 			"-n",
 			"ftype=1",
 		},
+		i.Manager.Dryrun,
 		"Formatting var partition (%s)",
 		i.Partitions.Var,
 	)

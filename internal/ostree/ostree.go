@@ -20,6 +20,7 @@ type Config struct {
 	Image       string
 	Interactive bool
 	ForceUpdate bool
+	Dryrun      bool
 }
 
 func Environment() bool {

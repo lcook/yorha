@@ -72,9 +72,13 @@ func Input(msg string) string {
 	return input.Text()
 }
 
-func Run(desc string, cmd []string) error {
+func Run(desc string, cmd []string, dryrun bool) error {
 	if desc != "" {
-		Info(desc)
+		if dryrun {
+			Info("[DRY] " + desc)
+		} else {
+			Info(desc)
+		}
 	}
 
 	fmt.Fprintf(
@@ -83,12 +87,16 @@ func Run(desc string, cmd []string) error {
 		color.New(color.FgYellow).Sprint(" "+strings.Join(cmd, " ")),
 	)
 
-	execution := exec.Command(cmd[0], cmd[1:]...)
+	if !dryrun {
+		execution := exec.Command(cmd[0], cmd[1:]...)
 
-	out, err := execution.CombinedOutput()
-	fmt.Fprint(logger.stdout, string(out))
+		out, err := execution.CombinedOutput()
+		fmt.Fprint(logger.stdout, string(out))
 
-	return err
+		return err
+	}
+
+	return nil
 }
 
 func Infof(
@@ -119,6 +127,6 @@ func Inputf(
 	return Input(fmt.Sprintf(format, args...))
 }
 
-func Runf(cmd []string, format string, args ...any) error {
-	return Run(fmt.Sprintf(format, args...), cmd)
+func Runf(cmd []string, dryrun bool, format string, args ...any) error {
+	return Run(fmt.Sprintf(format, args...), cmd, dryrun)
 }

@@ -5,6 +5,7 @@ package main
 // Copyright (c) Lewis Cook <hi@lcook.net>
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -25,23 +26,31 @@ import (
 )
 
 func main() {
+	dryrun := flag.Bool("d", false, "Enable dryrun operations")
+	flag.Parse()
+
 	color.Yellow(`yorha installer (ver:%s)`, version.Build)
 	fmt.Println()
 
-	for _, dep := range []string{
-		"podman",
-		"ostree",
-		"parted",
-		"mkfs.vfat",
-		"mkfs.xfs",
-	} {
-		_, err := exec.LookPath(dep)
-		if err != nil {
-			log.Errorf(
-				"Required dependency '%s' not found. Please install the package and try again",
-				dep,
-			)
+	if !*dryrun {
+		for _, dep := range []string{
+			"podman",
+			"ostree",
+			"parted",
+			"mkfs.vfat",
+			"mkfs.xfs",
+		} {
+			_, err := exec.LookPath(dep)
+			if err != nil {
+				log.Errorf(
+					"Required dependency '%s' not found. Please install the package and try again",
+					dep,
+				)
+			}
 		}
+	} else {
+		color.Blue("Running operations in dry-mode, no changes will be made")
+		fmt.Println()
 	}
 
 	disks, err := disk.GetDisks()
@@ -164,7 +173,7 @@ func main() {
 
 		partitions.RootSize = rootsize
 
-		inst = installer.New(disks[i], partitions)
+		inst = installer.New(disks[i], partitions, *dryrun)
 
 		break
 	}

@@ -29,6 +29,7 @@ type Installer struct {
 func New(
 	disk disk.DiskEntry,
 	partitions Partitions,
+	dryrun bool,
 ) *Installer {
 	return &Installer{
 		Target: disk,
@@ -39,6 +40,7 @@ func New(
 				SysTree:     "/mnt/setup/root",
 				Image:       images.DefaultImage,
 				Interactive: true,
+				Dryrun:      dryrun,
 			},
 		),
 		Partitions: partitions,
@@ -75,8 +77,10 @@ func (i *Installer) StageThree() {
 
 	i.InstallBootloader()
 
-	if err := unix.Unmount(i.Manager.SysRoot, unix.MNT_DETACH); err != nil {
-		log.Errorf("Failed to unmount sysroot: %s", err.Error())
+	if !i.Manager.Dryrun {
+		if err := unix.Unmount(i.Manager.SysRoot, unix.MNT_DETACH); err != nil {
+			log.Errorf("Failed to unmount sysroot: %s", err.Error())
+		}
 	}
 
 	log.Info(

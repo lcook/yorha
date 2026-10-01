@@ -33,65 +33,73 @@ func (i *Installer) InstallBootloader() {
 			"--bootloader-id=" + ostree.DefaultStateroot,
 			i.Partitions.Boot,
 		},
+		i.Manager.Dryrun,
 	)
 
-	deployments, _ := i.Manager.GetDeployments()
+	var syspath string = "checksum"
 
-	syspath := fmt.Sprintf(
-		"%s/ostree/deploy/%s/deploy/%s.0",
-		i.Manager.SysRoot,
-		ostree.DefaultStateroot,
-		deployments[0].Checksum,
-	)
+	if !i.Manager.Dryrun {
+		deployments, _ := i.Manager.GetDeployments()
+
+		syspath = fmt.Sprintf(
+			"%s/ostree/deploy/%s/deploy/%s.0",
+			i.Manager.SysRoot,
+			ostree.DefaultStateroot,
+			deployments[0].Checksum,
+		)
+	}
 
 	matches, _ := filepath.Glob(
 		filepath.Join(syspath, "boot", "*"),
 	)
-	for _, m := range matches {
-		os.RemoveAll(m)
-	}
 
-	if err := unix.Mount(
-		i.Manager.SysRoot+"/boot",
-		syspath+"/boot",
-		"xfs",
-		uintptr(unix.MS_BIND|unix.MS_REC),
-		"",
-	); err != nil {
-		log.Errorf(
-			"Failed to bind-mount boot directory for GRUB installation: %s",
-			err.Error(),
-		)
-	}
+	if !i.Manager.Dryrun {
+		for _, m := range matches {
+			os.RemoveAll(m)
+		}
 
-	os.MkdirAll(syspath+"/sysroot/ostree", 0o755)
-
-	if err := unix.Mount(
-		i.Manager.SysRoot+"/ostree",
-		syspath+"/sysroot/ostree",
-		"xfs",
-		uintptr(unix.MS_BIND|unix.MS_REC),
-		"",
-	); err != nil {
-		log.Errorf(
-			"Failed to bind-mount OSTree directory for GRUB installation: %s",
-			err.Error(),
-		)
-	}
-
-	for _, dev := range []string{"/dev", "/proc", "/sys"} {
 		if err := unix.Mount(
-			dev,
-			syspath+dev,
-			"",
-			uintptr(unix.MS_BIND),
+			i.Manager.SysRoot+"/boot",
+			syspath+"/boot",
+			"xfs",
+			uintptr(unix.MS_BIND|unix.MS_REC),
 			"",
 		); err != nil {
 			log.Errorf(
-				"Failed to bind-mount %s into GRUB installation chroot: %s",
-				dev,
+				"Failed to bind-mount boot directory for GRUB installation: %s",
 				err.Error(),
 			)
+		}
+
+		os.MkdirAll(syspath+"/sysroot/ostree", 0o755)
+
+		if err := unix.Mount(
+			i.Manager.SysRoot+"/ostree",
+			syspath+"/sysroot/ostree",
+			"xfs",
+			uintptr(unix.MS_BIND|unix.MS_REC),
+			"",
+		); err != nil {
+			log.Errorf(
+				"Failed to bind-mount OSTree directory for GRUB installation: %s",
+				err.Error(),
+			)
+		}
+
+		for _, dev := range []string{"/dev", "/proc", "/sys"} {
+			if err := unix.Mount(
+				dev,
+				syspath+dev,
+				"",
+				uintptr(unix.MS_BIND),
+				"",
+			); err != nil {
+				log.Errorf(
+					"Failed to bind-mount %s into GRUB installation chroot: %s",
+					dev,
+					err.Error(),
+				)
+			}
 		}
 	}
 
@@ -104,7 +112,10 @@ func (i *Installer) InstallBootloader() {
 			"-c",
 			"grub-mkconfig -o /boot/efi/EFI/grub/grub.cfg",
 		},
+		i.Manager.Dryrun,
 	)
 
-	os.RemoveAll(i.Manager.SysSetup)
+	if !i.Manager.Dryrun {
+		os.RemoveAll(i.Manager.SysSetup)
+	}
 }

@@ -28,16 +28,23 @@ type Manager struct{ Config }
 func New(config Config) *Manager { return &Manager{config} }
 
 func (m *Manager) CreateRootFilesystem() {
-	podman, err := podman.NewClient(podman.RootfullContext)
+	var context podman.ConnectionType = podman.RootfullContext
+	if m.Dryrun {
+		context = podman.RootlessContext
+	}
+
+	podman, err := podman.NewClient(context)
 	if err != nil {
 		log.Error(err.Error())
 	}
 
-	if _, err := os.Stat(m.SysTree); err == nil {
-		log.Info("Removing previous staging environment")
+	if !m.Dryrun {
+		if _, err := os.Stat(m.SysTree); err == nil {
+			log.Info("Removing previous staging environment")
 
-		if err := os.RemoveAll(m.SysTree); err != nil {
-			log.Error(err.Error())
+			if err := os.RemoveAll(m.SysTree); err != nil {
+				log.Error(err.Error())
+			}
 		}
 	}
 
@@ -88,72 +95,86 @@ func (m *Manager) CreateRootFilesystem() {
 	if !podman.HasLocalImage(image) {
 		log.Info("Image not found locally, pulling from registry")
 
-		if err := podman.PullImage(image); err != nil {
-			log.Errorf(
-				"Failed to pull container image %s: %s",
-				image,
-				err.Error(),
-			)
+		if !m.Dryrun {
+			if err := podman.PullImage(image); err != nil {
+				log.Errorf(
+					"Failed to pull container image %s: %s",
+					image,
+					err.Error(),
+				)
+			}
 		}
 	} else if !local && !m.ForceUpdate {
 		log.Info("Checking for updates")
 
-		inspect, err := podman.GetImage(image)
-		if err != nil {
-			log.Error(err.Error())
-		}
+		if !m.Dryrun {
 
-		remote, err := podman.GetRemoteImage("//" + image)
-		if err != nil {
-			log.Error(err.Error())
-		}
+			inspect, err := podman.GetImage(image)
+			if err != nil {
+				log.Error(err.Error())
+			}
 
-		if inspect.ID == strings.TrimPrefix(remote.Digest.String(), "sha256:") {
-			log.Errorf("Current image is up to date (%s)", inspect.ID[0:11])
-		}
+			remote, err := podman.GetRemoteImage("//" + image)
+			if err != nil {
+				log.Error(err.Error())
+			}
 
-		log.Infof(
-			"Newer version available (local: %s -> remote: %s)",
-			inspect.ID[0:11],
-			strings.TrimPrefix(remote.Digest.String(), "sha256:")[0:11],
-		)
+			if inspect.ID == strings.TrimPrefix(
+				remote.Digest.String(),
+				"sha256:",
+			) {
+				log.Errorf("Current image is up to date (%s)", inspect.ID[0:11])
+			}
 
-		if err := podman.PullImage(image); err != nil {
-			log.Errorf(
-				"Failed to pull update: %s",
-				err.Error(),
-			)
-		}
-
-		if err := podman.RemoveLocalImage(inspect.ID); err != nil {
-			log.Errorf(
-				"Failed to remove previous image (%s): %s",
+			log.Infof(
+				"Newer version available (local: %s -> remote: %s)",
 				inspect.ID[0:11],
-				err.Error(),
+				strings.TrimPrefix(remote.Digest.String(), "sha256:")[0:11],
+			)
+
+			if err := podman.PullImage(image); err != nil {
+				log.Errorf(
+					"Failed to pull update: %s",
+					err.Error(),
+				)
+			}
+
+			if err := podman.RemoveLocalImage(inspect.ID); err != nil {
+				log.Errorf(
+					"Failed to remove previous image (%s): %s",
+					inspect.ID[0:11],
+					err.Error(),
+				)
+			}
+
+			log.Infof(
+				"Cleaned up previous revision (%s)",
+				inspect.ID[0:11],
 			)
 		}
-
-		log.Infof(
-			"Cleaned up previous revision (%s)",
-			inspect.ID[0:11],
-		)
 	}
 
 	log.Info("Initializing staging environment")
 
-	if err := os.MkdirAll(m.SysTree, 0o755); err != nil {
-		log.Error(err.Error())
-	}
+	var handle *os.File
 
-	handle, err := util.GetFileDescriptor(output)
-	if err != nil {
-		log.Error(err.Error())
+	if !m.Dryrun {
+		if err := os.MkdirAll(m.SysTree, 0o755); err != nil {
+			log.Error(err.Error())
+		}
+
+		handle, err = util.GetFileDescriptor(output)
+		if err != nil {
+			log.Error(err.Error())
+		}
 	}
 
 	log.Info("Exporting image to staging directory")
 
-	if err := podman.ExportContainer(image, handle); err != nil {
-		log.Error(err.Error())
+	if !m.Dryrun {
+		if err := podman.ExportContainer(image, handle); err != nil {
+			log.Error(err.Error())
+		}
 	}
 
 	log.Run("Extracting container root filesystem", []string{
@@ -162,46 +183,50 @@ func (m *Manager) CreateRootFilesystem() {
 		output,
 		"-C",
 		m.SysTree,
-	})
+	}, m.Dryrun)
 
-	if _, err := os.Stat(output); err == nil {
-		if err := os.RemoveAll(output); err != nil {
-			log.Error(err.Error())
+	if !m.Dryrun {
+		if _, err := os.Stat(output); err == nil {
+			if err := os.RemoveAll(output); err != nil {
+				log.Error(err.Error())
+			}
 		}
 	}
 }
 
 func (m *Manager) CreateLayout() {
-	os.Create(m.SysTree + "/etc/machine-id")
+	if !m.Dryrun {
+		os.Create(m.SysTree + "/etc/machine-id")
 
-	os.Rename(m.SysTree+"/etc", m.SysTree+"/usr/etc")
+		os.Rename(m.SysTree+"/etc", m.SysTree+"/usr/etc")
 
-	for _, file := range []string{
-		m.SysTree + "/usr/etc/hostname",
-		m.SysTree + "/usr/etc/resolv.conf",
-	} {
-		if info, err := os.Stat(file); err == nil && info.Size() == 0 {
-			os.Remove(file)
+		for _, file := range []string{
+			m.SysTree + "/usr/etc/hostname",
+			m.SysTree + "/usr/etc/resolv.conf",
+		} {
+			if info, err := os.Stat(file); err == nil && info.Size() == 0 {
+				os.Remove(file)
+			}
 		}
+
+		os.RemoveAll(m.SysTree + "/home")
+		os.Symlink("/var/home", m.SysTree+"/home")
+
+		os.RemoveAll(m.SysTree + "/mnt")
+		os.Symlink("/var/mnt", m.SysTree+"/mnt")
+
+		os.RemoveAll(m.SysTree + "/root")
+		os.Symlink("/var/roothome", m.SysTree+"/root")
+
+		os.RemoveAll(m.SysTree + "/srv")
+		os.Symlink("/var/srv", m.SysTree+"/srv")
+
+		os.MkdirAll(m.SysTree+"/sysroot", 0o755)
+		os.Symlink("/sysroot/ostree", m.SysTree+"/ostree")
+
+		os.RemoveAll(m.SysTree + "/usr/local")
+		os.Symlink("/var/usrlocal", m.SysTree+"/usr/local")
 	}
-
-	os.RemoveAll(m.SysTree + "/home")
-	os.Symlink("/var/home", m.SysTree+"/home")
-
-	os.RemoveAll(m.SysTree + "/mnt")
-	os.Symlink("/var/mnt", m.SysTree+"/mnt")
-
-	os.RemoveAll(m.SysTree + "/root")
-	os.Symlink("/var/roothome", m.SysTree+"/root")
-
-	os.RemoveAll(m.SysTree + "/srv")
-	os.Symlink("/var/srv", m.SysTree+"/srv")
-
-	os.MkdirAll(m.SysTree+"/sysroot", 0o755)
-	os.Symlink("/sysroot/ostree", m.SysTree+"/ostree")
-
-	os.RemoveAll(m.SysTree + "/usr/local")
-	os.Symlink("/var/usrlocal", m.SysTree+"/usr/local")
 
 	log.Infof(
 		"Created OSTree filesystem layout at %s",
@@ -210,9 +235,10 @@ func (m *Manager) CreateLayout() {
 
 	log.Info("Writing systemd-tmpfiles(8) configuration")
 
-	os.WriteFile(
-		m.SysTree+"/usr/lib/tmpfiles.d/ostree-0-integration.conf",
-		[]byte(`d /var/home 0755 root root -
+	if !m.Dryrun {
+		os.WriteFile(
+			m.SysTree+"/usr/lib/tmpfiles.d/ostree-0-integration.conf",
+			[]byte(`d /var/home 0755 root root -
 d /var/lib 0755 root root -
 d /var/log/journal 0755 root root -
 d /var/mnt 0755 root root -
@@ -230,40 +256,49 @@ d /var/usrlocal/sbin 0755 root root -
 d /var/usrlocal/share 0755 root root -
 d /var/usrlocal/src 0755 root root -
 d /run/media 0755 root root -`),
-		0o755,
-	)
+			0o755,
+		)
 
-	os.Rename(
-		m.SysTree+"/var/lib/pacman",
-		m.SysTree+"/usr/lib/pacman",
-	)
+		os.Rename(
+			m.SysTree+"/var/lib/pacman",
+			m.SysTree+"/usr/lib/pacman",
+		)
 
-	content, _ := os.ReadFile(m.SysTree + "/usr/etc/pacman.conf")
-	lines := strings.Split(string(content), "\n")
+		content, _ := os.ReadFile(m.SysTree + "/usr/etc/pacman.conf")
+		lines := strings.Split(string(content), "\n")
 
-	for i, line := range lines {
-		if strings.HasPrefix(line, "#DBPath") {
-			lines[i] = "DBPath = /usr/lib/pacman/"
-		} else if strings.HasPrefix(line, "#IgnoreGroup") {
-			lines[i] = "IgnoreGroup = modified"
+		for i, line := range lines {
+			if strings.HasPrefix(line, "#DBPath") {
+				lines[i] = "DBPath = /usr/lib/pacman/"
+			} else if strings.HasPrefix(line, "#IgnoreGroup") {
+				lines[i] = "IgnoreGroup = modified"
+			}
+		}
+
+		os.WriteFile(
+			m.SysTree+"/usr/etc/pacman.conf",
+			[]byte(strings.Join(lines, "\n")),
+			0o644,
+		)
+
+		matches, _ := filepath.Glob(
+			filepath.Join(m.SysTree, "var", "*"),
+		)
+		for _, m := range matches {
+			os.RemoveAll(m)
 		}
 	}
 
-	os.WriteFile(
-		m.SysTree+"/usr/etc/pacman.conf",
-		[]byte(strings.Join(lines, "\n")),
-		0o644,
+	log.Run(
+		"",
+		[]string{"chmod u-s", m.SysTree + "/usr/bin/newuidmap"},
+		m.Dryrun,
 	)
-
-	matches, _ := filepath.Glob(
-		filepath.Join(m.SysTree, "var", "*"),
+	log.Run(
+		"",
+		[]string{"chmod u-s", m.SysTree + "/usr/bin/newgidmap"},
+		m.Dryrun,
 	)
-	for _, m := range matches {
-		os.RemoveAll(m)
-	}
-
-	log.Run("", []string{"chmod u-s", m.SysTree + "/usr/bin/newuidmap"})
-	log.Run("", []string{"chmod u-s", m.SysTree + "/usr/bin/newgidmap"})
 
 	log.Run(
 		"Restoring user namespace capability on newuidmap",
@@ -272,6 +307,7 @@ d /run/media 0755 root root -`),
 			"cap_setuid+eip",
 			m.SysTree + "/usr/bin/newuidmap",
 		},
+		m.Dryrun,
 	)
 
 	log.Run(
@@ -281,6 +317,7 @@ d /run/media 0755 root root -`),
 			"cap_setgid+eip",
 			m.SysTree + "/usr/bin/newgidmap",
 		},
+		m.Dryrun,
 	)
 }
 
@@ -293,9 +330,9 @@ func (m *Manager) DeployImage() {
 			"--branch=" + DefaultBranch,
 			"--tree=dir=" + m.SysTree,
 		},
-		"Committing root filesystem to OSTree branch %s from directory %s",
+		m.Dryrun,
+		"Committing root filesystem to OSTree branch %s",
 		DefaultBranch,
-		m.SysTree,
 	)
 
 	var (
@@ -337,14 +374,14 @@ func (m *Manager) DeployImage() {
 	cmd = append(cmd, "--retain")
 	cmd = append(cmd, DefaultBranch)
 
-	log.Run("Deploying OSTree revision", cmd)
+	log.Run("Deploying OSTree revision", cmd, m.Dryrun)
 
 	if Environment() {
 		log.Run("Updating boot configuration", []string{
 			"grub-mkconfig",
 			"-o",
 			"/boot/efi/EFI/grub/grub.cfg",
-		})
+		}, m.Dryrun)
 	}
 }
 
