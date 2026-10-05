@@ -1,4 +1,4 @@
-.PHONY: build build-thin build-images build-images-extra gen update-dots clean help
+.PHONY: build build-thin build-images build-images-extra gen update-dots lint clean help
 .DELETE_ON_ERROR:
 .ONESHELL:
 
@@ -46,6 +46,9 @@ gen: yorha
 
 update-dots:
 	git submodule update --remote --merge dots
+
+lint:
+	golangci-lint run --build-tags exclude_graphdriver_btrfs
 
 clean:
 	rm -rfv $(PROGS) Containerfile* $(ARCHISO_OUT) $(ARCHISO_TMP)
