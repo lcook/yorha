@@ -31,7 +31,7 @@ type Manager struct{ Config }
 func New(config Config) *Manager { return &Manager{config} }
 
 func (m *Manager) CreateRootFilesystem() {
-	var context podman.ConnectionType = podman.RootfullContext
+	context := podman.RootfullContext
 	if m.Dryrun {
 		context = podman.RootlessContext
 	}
@@ -151,7 +151,6 @@ func (m *Manager) CreateRootFilesystem() {
 		log.Info("Checking for updates")
 
 		if !m.Dryrun {
-
 			inspect, err := podman.GetImage(image)
 			if err != nil {
 				log.Error(err.Error())
@@ -378,6 +377,7 @@ func (m *Manager) DeployImage() {
 		DefaultBranch,
 	)
 
+	//nolint:prealloc
 	var (
 		cmd = []string{
 			"ostree",

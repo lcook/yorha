@@ -36,7 +36,7 @@ func (i *Installer) InstallBootloader() {
 		i.Manager.Dryrun,
 	)
 
-	var syspath string = "checksum"
+	syspath := "checksum"
 
 	if !i.Manager.Dryrun {
 		deployments, _ := i.Manager.GetDeployments()

@@ -88,6 +88,7 @@ func (i *Installer) CreateMounts() {
 }
 
 func (i *Installer) CreateRepository() {
+	//nolint:goconst
 	log.Run(
 		"Initializing OSTree filesystem layout",
 		[]string{

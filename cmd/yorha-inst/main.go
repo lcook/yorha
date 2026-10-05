@@ -27,6 +27,7 @@ import (
 
 func main() {
 	dryrun := flag.Bool("d", false, "Enable dryrun operations")
+
 	flag.Parse()
 
 	color.Yellow(`yorha installer (ver:%s)`, version.Build)
