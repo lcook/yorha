@@ -1,0 +1,16 @@
+
+Welcome to the YoRHa installer environment.
+
+If you are not connected to the network, press Ctrl+C to drop to a shell,
+then run `nmtui` to configure your connection. You can verify connectivity
+with:
+
+    ping -c3 archlinux.org
+
+Once online, run `yorha-inst` to start the interactive installation again.
+
+Documentation and updates:
+    https://github.com/lcook/yorha
+
+--------------------------------------------------------------------------
+
