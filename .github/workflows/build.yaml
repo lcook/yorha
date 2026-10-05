@@ -10,7 +10,7 @@ on:
       - 'Makefile'
       - 'cmd/**'
       - 'config/**'
-      - 'dots/**'
+      - 'dots'
       - 'go.mod'
       - 'go.sum'
       - 'internal/**'
