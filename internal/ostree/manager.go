@@ -17,6 +17,9 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/fatih/color"
+
+	"github.com/lcook/yorha/internal/device"
 	"github.com/lcook/yorha/internal/images"
 	log "github.com/lcook/yorha/internal/logger"
 	"github.com/lcook/yorha/internal/podman"
@@ -54,33 +57,73 @@ func (m *Manager) CreateRootFilesystem() {
 	)
 
 	if m.Interactive {
+		var (
+			selected      = 0
+			dev           = device.Detect()
+			deviceOrdered = []device.Device{
+				device.DeviceUnknown,
+				device.DeviceIntel,
+				device.DeviceNVIDIA,
+			}
+		)
+
+		if dev != device.DeviceUnknown {
+			image := images.Images[dev]
+			log.Infof(
+				"Automatically detected %s graphics device, defaulting to %s",
+				device.ToStr(dev),
+				image.Name,
+			)
+
+			for idx, candidate := range deviceOrdered {
+				if images.Images[candidate] == image {
+					selected = idx
+					break
+				}
+			}
+		}
+
+		fmt.Println()
+
 		for {
-			for idx, image := range images.Images {
+			for idx, dev := range deviceOrdered {
+				image := images.Images[dev]
 				fmt.Printf(
-					"[%d] %s: %s\n",
+					"[%d] %s - %s\n",
 					idx,
-					image.Name,
+					color.CyanString(image.Name),
 					image.Description,
 				)
 			}
 
-			input := log.Inputf(
-				"Select container image [0-%d]: ",
-				len(images.Images)-1,
+			fmt.Printf(
+				"[%d] %s - %s\n\n",
+				len(deviceOrdered),
+				color.MagentaString("Custom image"),
+				"Provide your own custom container image",
 			)
 
+			input := log.Inputf(
+				"Select container image [%d]: ",
+				selected,
+			)
+
+			if input == "" {
+				input = strconv.Itoa(selected)
+			}
+
 			index, err := strconv.Atoi(input)
-			if err != nil || index < 0 || index >= len(images.Images) {
+			if err != nil || index < 0 || index > len(deviceOrdered) {
 				continue
 			}
 
-			if index == len(images.Images)-1 {
-				image = log.Input("Enter custom image location: ")
+			if index == len(deviceOrdered) {
+				image = log.Input("Enter image location: ")
 				if image == "" {
 					continue
 				}
 			} else {
-				image = images.Images[index].Name
+				image = images.Images[deviceOrdered[index]].Name
 			}
 
 			break
