@@ -60,6 +60,7 @@ help:
 	@echo "build-images-extra | Build container images including nvidia and intel"
 	@echo "gen                | Generate Containerfiles for all image types"
 	@echo "update-dots        | Merge latest dotfiles submodule"
+	@echo "lint               | Perform linting on codebase with golangci-lint"
 	@echo "qemu-installer     | Build bootable installer ISO"
 	@echo "qemu-installer-run | Create disk and launch QEMU with installer ISO"
 	@echo "clean              | Remove build artifacts and generated files"
