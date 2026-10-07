@@ -6,6 +6,7 @@ environment:
 packages:
   - fish
   - sudo
+  - vim
   - inetutils
   - openssh
   - man-pages
