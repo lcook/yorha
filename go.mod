@@ -5,9 +5,9 @@ go 1.27.0
 require (
 	github.com/fatih/color v1.19.0
 	github.com/spf13/cobra v1.10.2
-	go.podman.io/buildah v1.45.1
+	go.podman.io/buildah v1.45.2
 	go.podman.io/image/v5 v5.41.2
-	go.podman.io/podman/v6 v6.1.3
+	go.podman.io/podman/v6 v6.1.4
 	golang.org/x/sys v0.49.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -103,7 +103,7 @@ require (
 	github.com/sigstore/fulcio v1.8.8 // indirect
 	github.com/sigstore/protobuf-specs v0.5.2 // indirect
 	github.com/sigstore/sigstore v1.10.9 // indirect
-	github.com/sirupsen/logrus v1.10.1 // indirect
+	github.com/sirupsen/logrus v1.10.2 // indirect
 	github.com/skeema/knownhosts v1.3.2 // indirect
 	github.com/smallstep/pkcs7 v0.2.3 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
@@ -123,14 +123,14 @@ require (
 	go.opentelemetry.io/otel/metric v1.45.0 // indirect
 	go.opentelemetry.io/otel/trace v1.45.0 // indirect
 	go.podman.io/common v0.69.2 // indirect
-	go.podman.io/storage v1.64.1 // indirect
+	go.podman.io/storage v1.64.2 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/crypto v0.56.0 // indirect
-	golang.org/x/net v0.58.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/term v0.45.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/term v0.46.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260819154853-08b0e4226688 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688 // indirect
 	google.golang.org/grpc v1.83.1 // indirect
