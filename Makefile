@@ -4,6 +4,7 @@
 
 .DEFAULT_GOAL = help
 
+include Makefile.installer
 include Makefile.qemu
 
 VER = 0.1.0
@@ -15,9 +16,10 @@ IMAGES = base mainline
 SUFFIX = -full
 
 GO_MODULE = github.com/lcook/yorha
+GO_TAGS = exclude_graphdriver_btrfs
 GO_FLAGS = -v \
 	-ldflags "-s -w -X $(GO_MODULE)/internal/version.Build=$(VER)-$(HASH)$(SUFFIX)" \
-	-tags exclude_graphdriver_btrfs$(TAGS_SUFFIX)
+	-tags $(GO_TAGS)$(TAGS_SUFFIX)
 
 build: $(PROGS)
 
@@ -48,7 +50,7 @@ update-dots:
 	git submodule update --remote --merge dots
 
 lint:
-	golangci-lint run --build-tags exclude_graphdriver_btrfs
+	golangci-lint run --build-tags $(GO_TAGS)
 
 clean:
 	rm -rfv $(PROGS) Containerfile* $(ARCHISO_OUT) $(ARCHISO_TMP)
@@ -61,7 +63,7 @@ help:
 	@echo "gen                | Generate Containerfiles for all image types"
 	@echo "update-dots        | Merge latest dotfiles submodule"
 	@echo "lint               | Perform linting on codebase with golangci-lint"
-	@echo "qemu-installer     | Build bootable installer ISO"
+	@echo "installer          | Build bootable installer ISO"
 	@echo "qemu-installer-run | Create disk and launch QEMU with installer ISO"
 	@echo "clean              | Remove build artifacts and generated files"
 	@echo "help               | Show this help message"

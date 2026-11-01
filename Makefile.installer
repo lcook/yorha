@@ -1,0 +1,10 @@
+.PHONY: installer
+
+ARCHISO_DIR = archiso
+ARCHISO_OUT = $(ARCHISO_DIR)_release
+ARCHISO_TMP = /tmp/archiso-tmp
+ARCHISO_FLAGS = -v -r -w $(ARCHISO_TMP) -o $(ARCHISO_OUT) $(ARCHISO_DIR)
+
+installer: yorha-inst
+	cp -v yorha-inst $(ARCHISO_DIR)/airootfs/usr/local/bin
+	mkarchiso $(ARCHISO_FLAGS)
